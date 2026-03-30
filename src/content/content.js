@@ -94,20 +94,29 @@
 
   /**
    * Remove generic fixed/absolute divs that contain paywall text.
+   * Uses getComputedStyle so it catches both inline and CSS-class-based positioning.
    * Studocu sometimes uses elements with no distinctive class or data attribute.
    */
   function removePreviewBannerByText() {
-    const candidates = document.querySelectorAll(
-      'div[style*="position: fixed"], div[style*="position:fixed"], ' +
-      'div[style*="position: absolute"], div[style*="position:absolute"]'
-    );
-    candidates.forEach(el => {
+    // Check both inline-style and computed-style positioned elements
+    const candidates = document.querySelectorAll('div, section, aside');
+    for (const el of candidates) {
       // Skip real document containers
-      if (el.querySelector('.pf, .pc, [data-page-index]')) return;
+      if (el.querySelector('.pf, .pc, [data-page-index]')) continue;
+      if (el.id === 'clean-viewer-container') continue;
+
+      const cs = window.getComputedStyle(el);
+      const pos = cs.getPropertyValue('position');
+      if (pos !== 'fixed' && pos !== 'absolute') continue;
+
+      // Skip very small elements (not a full overlay)
+      const rect = el.getBoundingClientRect();
+      if (rect.width < 100 || rect.height < 50) continue;
+
       const text = el.innerText || '';
       const isPaywall = PAYWALL_KEYWORDS.some(kw => text.includes(kw));
       if (isPaywall) el.remove();
-    });
+    }
   }
 
   /** Restore body scroll that may have been locked by an overlay. */

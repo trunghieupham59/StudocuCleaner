@@ -17,6 +17,8 @@ body {
 #paywall-overlay,
 #preview-overlay,
 .banner-wrapper,
+[class*="overlay"],
+[class*="Overlay"],
 [class*="paywall"],
 [class*="Paywall"],
 [class*="PaywallOverlay"],
@@ -38,6 +40,7 @@ body {
 [data-testid="document-preview-overlay"],
 [data-testid="preview-overlay"],
 [data-testid="blur-overlay"],
+[data-testid="upgrade-banner"],
 #page-container-wrapper + div,
 .advertisement {
   display: none !important;
@@ -48,13 +51,17 @@ body {
 }
 
 /* ── Ensure document content is always visible / unblurred ── */
+/* These rules must override the broad overlay selectors above */
 .pf,
 .pc,
 #document-wrapper,
 [class*="DocumentPage"],
 [class*="document-page"],
 [class*="Page_page"],
-[data-page-index] {
+[data-page-index],
+#page-container-wrapper,
+[class*="document-content"],
+[class*="DocumentContent"] {
   display: block !important;
   visibility: visible !important;
   opacity: 1 !important;
@@ -62,4 +69,5 @@ body {
   overflow: visible !important;
   max-height: none !important;
   pointer-events: auto !important;
+  z-index: auto !important;
 }
