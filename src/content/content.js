@@ -56,6 +56,9 @@
     '[class*="Page_page"]',
     '[class*="document-content"]',
     '[class*="DocumentContent"]',
+    '[class*="blurred-image-wrapper"]',
+    '[class*="BlurredImage"]',
+    '[class*="page-content"]',
   ];
 
   // ─── Paywall text keywords ────────────────────────────────────────────────
@@ -105,6 +108,36 @@
         el.style.setProperty('max-height',     'none',    'important');
         el.style.setProperty('pointer-events', 'auto',    'important');
       });
+    }
+  }
+
+  /**
+   * Replace blurred image URLs with their clear equivalents.
+   * Studocu serves pre-blurred images at /pages/blurred/pageX.webp
+   * The clear version is at /pages/pageX.webp (same path without /blurred/).
+   */
+  function unblurImages() {
+    const imgs = document.querySelectorAll('img[src*="/blurred/"], img[alt*="blurred"]');
+    for (const img of imgs) {
+      const src = img.src || img.getAttribute('src') || '';
+      if (!src) continue;
+
+      // Replace /pages/blurred/ → /pages/  in the URL path (before query string)
+      const [urlPath, query] = src.split('?');
+      const clearedPath = urlPath.replace('/blurred/', '/');
+      const newSrc = query ? `${clearedPath}?${query}` : clearedPath;
+
+      if (newSrc !== src) {
+        img.src = newSrc;
+        img.removeAttribute('alt'); // remove alt="blurred_content_of_page_X"
+      }
+
+      // Also remove blur filter from the image wrapper
+      const wrapper = img.closest('[class*="blurred"], [class*="Blurred"], [class*="blurred-image"]');
+      if (wrapper) {
+        wrapper.style.setProperty('filter', 'none', 'important');
+        wrapper.style.setProperty('opacity', '1', 'important');
+      }
     }
   }
 
@@ -193,6 +226,7 @@
       removeOverlays();
       unblurPages();
       removeAllBlur();
+      unblurImages();
       removePreviewBannerByText();
       restoreBodyScroll();
     } finally {
@@ -262,22 +296,32 @@
       }
     });
 
-    // Observe all current .pf and .pc elements
-    const targets = document.querySelectorAll('.pf, .pc, [data-page-index]');
+    // Selectors for all elements that may get blur injected
+    const PAGE_BLUR_SELECTOR = '.pf, .pc, [data-page-index], [class*="blurred-image-wrapper"], [class*="BlurredImage"], [class*="page-content"]';
+
+    // Observe all current page/blur elements
+    const targets = document.querySelectorAll(PAGE_BLUR_SELECTOR);
     for (const el of targets) {
       pageObserver.observe(el, { attributes: true, attributeFilter: ['style'] });
     }
 
-    // Also watch for new .pf/.pc nodes being added so we can attach the observer
+    // Also watch for new nodes being added so we can attach the observer
     const addObserver = new MutationObserver(mutations => {
       for (const m of mutations) {
         for (const node of m.addedNodes) {
           if (node.nodeType !== Node.ELEMENT_NODE) continue;
-          const pages = node.matches?.('.pf, .pc, [data-page-index]')
+          const pages = node.matches?.(PAGE_BLUR_SELECTOR)
             ? [node]
-            : Array.from(node.querySelectorAll('.pf, .pc, [data-page-index]'));
+            : Array.from(node.querySelectorAll(PAGE_BLUR_SELECTOR));
           for (const el of pages) {
             pageObserver.observe(el, { attributes: true, attributeFilter: ['style'] });
+          }
+          // Also fix any blurred images in newly added nodes
+          const imgs = node.querySelectorAll?.('img[src*="/blurred/"]') ?? [];
+          for (const img of imgs) {
+            const [urlPath, query] = (img.src || '').split('?');
+            const clearedPath = urlPath.replace('/blurred/', '/');
+            img.src = query ? `${clearedPath}?${query}` : clearedPath;
           }
         }
       }
