@@ -1,16 +1,16 @@
 /**
  * viewer.js
- * Được inject vào trang Studocu khi người dùng bấm "Tạo file PDF".
- * Chạy trong context của trang web (không phải extension).
+ * Injected into the Studocu page when the user clicks "Create PDF".
+ * Runs in the web page context (not the extension context).
  */
 (function () {
     'use strict';
 
-    // Guard: tránh chạy lại nếu đã inject
+    // Guard: prevent re-running if already injected
     if (document.getElementById('clean-viewer-container')) return;
 
     // ============================================================
-    // Custom modal (thay thế alert / confirm)
+    // Custom modal (replaces native alert / confirm)
     // ============================================================
 
     const MODAL_STYLES = `
@@ -78,7 +78,7 @@
     }
 
     /**
-     * Hiển thị modal thông báo (thay alert).
+     * Show an alert modal (replaces native alert).
      * @returns {Promise<void>}
      */
     function showAlert(title, message) {
@@ -108,7 +108,7 @@
     }
 
     /**
-     * Hiển thị modal xác nhận (thay confirm).
+     * Show a confirm modal (replaces native confirm).
      * @returns {Promise<boolean>}
      */
     function showConfirm(title, message) {
@@ -173,7 +173,7 @@
     // Style helpers
     // ============================================================
 
-    /** Chia giá trị CSS có đơn vị cho một divisor. */
+    /** Divide a CSS value (with unit) by a divisor. */
     function scaleValue(value, divisor) {
         const num = parseFloat(value);
         if (isNaN(num) || num === 0) return value;
@@ -182,7 +182,7 @@
     }
 
     /**
-     * Xây dựng chuỗi style inline từ computed style của element nguồn.
+     * Build an inline style string from the computed style of a source element.
      * @param {Element} source
      * @param {{ scaleFont, scaleHeight, scaleWidth, scaleMargin }} opts
      */
@@ -202,16 +202,19 @@
             if (val && !SKIP_VALUES.has(val)) style += `${prop}:${val}!important;`;
         }
 
+        // Width
         const wVal = cs.getPropertyValue('width');
         if (wVal && !SKIP_VALUES.has(wVal)) {
             style += `width:${scaleWidth ? scaleValue(wVal, CONFIG.widthScaleDivisor) : wVal}!important;`;
         }
 
+        // Height
         const hVal = cs.getPropertyValue('height');
         if (hVal && !SKIP_VALUES.has(hVal)) {
             style += `height:${scaleHeight ? scaleValue(hVal, CONFIG.heightScaleDivisor) : hVal}!important;`;
         }
 
+        // Margins
         for (const prop of MARGIN_PROPS) {
             const val = cs.getPropertyValue(prop);
             if (val && val !== 'auto') {
@@ -219,6 +222,7 @@
             }
         }
 
+        // Font-size & line-height
         for (const prop of SCALE_PROPS) {
             const val = cs.getPropertyValue(prop);
             if (val && !SKIP_VALUES.has(val)) {
@@ -226,17 +230,19 @@
             }
         }
 
+        // Transform-origin
         const origin = cs.getPropertyValue('transform-origin');
         if (origin) {
             style += `transform-origin:${origin}!important;-webkit-transform-origin:${origin}!important;`;
         }
 
+        // Always reset overflow / clip
         style += 'overflow:visible!important;max-width:none!important;max-height:none!important;clip:auto!important;clip-path:none!important;';
         return style;
     }
 
     // ============================================================
-    // Deep clone với computed styles
+    // Deep clone with computed styles
     // ============================================================
     function deepCloneWithStyles(element) {
         const clone     = element.cloneNode(false);
@@ -279,7 +285,7 @@
     }
 
     // ============================================================
-    // Dimension helper
+    // Page dimension helper
     // ============================================================
     function getPageDimensions(page) {
         const pc = page.querySelector('.pc');
@@ -299,11 +305,13 @@
     // ============================================================
     // Layer builders
     // ============================================================
+
+    /** Build the background image layer for a page. */
     function buildImageLayer(page) {
         const img = page.querySelector('img.bi') || page.querySelector('img');
         if (!img) return null;
 
-        const layer    = document.createElement('div');
+        const layer     = document.createElement('div');
         layer.className = 'layer-bg';
 
         const imgClone = img.cloneNode(true);
@@ -312,11 +320,12 @@
         return layer;
     }
 
+    /** Build the text overlay layer for a page. */
     function buildTextLayer(page) {
         const pc = page.querySelector('.pc');
         if (!pc) return null;
 
-        const layer    = document.createElement('div');
+        const layer     = document.createElement('div');
         layer.className = 'layer-text';
 
         const pcClone = deepCloneWithStyles(pc);
@@ -326,27 +335,27 @@
     }
 
     // ============================================================
-    // Main (async để dùng custom modal)
+    // Main (async to support custom modals)
     // ============================================================
     (async () => {
         const pages = document.querySelectorAll('div[data-page-index]');
 
         if (pages.length === 0) {
             await showAlert(
-                'Không tìm thấy trang nào',
-                'Hãy cuộn xuống cuối tài liệu để web tải hết nội dung, sau đó thử lại.'
+                'No pages found',
+                'Please scroll to the bottom of the document so all content loads, then try again.'
             );
             return;
         }
 
         const confirmed = await showConfirm(
-            `Tìm thấy ${pages.length} trang`,
-            `Nhấn <strong>Tạo PDF</strong> để xử lý và mở hộp thoại in.`
+            `Found ${pages.length} pages`,
+            `Click <strong>Create PDF</strong> to process and open the print dialog.`
         );
         if (!confirmed) return;
 
-        const container       = document.createElement('div');
-        container.id          = 'clean-viewer-container';
+        const container  = document.createElement('div');
+        container.id     = 'clean-viewer-container';
 
         pages.forEach((page, index) => {
             const { width, height } = getPageDimensions(page);

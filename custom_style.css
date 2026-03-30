@@ -1,9 +1,9 @@
 /* ============================================================
    Studocu Cleaner - Content Script Styles
-   Áp dụng ngay khi trang bắt đầu tải (document_start)
+   Applied immediately when the page starts loading (document_start)
    ============================================================ */
 
-/* Cho phép cuộn và chọn text tự do */
+/* Allow free scrolling and text selection */
 html,
 body {
     overflow: auto !important;
@@ -11,7 +11,7 @@ body {
     user-select: text !important;
 }
 
-/* Ẩn overlay, paywall, quảng cáo */
+/* Hide overlays, paywalls, and ads */
 #upgrade-overlay,
 .banner-wrapper,
 [class*="paywall"],
@@ -30,7 +30,7 @@ body {
     z-index: -9999 !important;
 }
 
-/* Đảm bảo nội dung tài liệu luôn hiển thị */
+/* Ensure document content is always visible */
 .pf,
 .pc,
 #document-wrapper,

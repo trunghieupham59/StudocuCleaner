@@ -1,21 +1,21 @@
 /* ============================================================
    Studocu Cleaner - Viewer / Print Styles
-   Inject vào trang khi người dùng bấm "Tạo file PDF"
+   Injected into the page when the user clicks "Create PDF"
    ============================================================ */
 
-/* Reset body để chỉ hiển thị viewer */
+/* Reset body to only show the viewer */
 body {
     background-color: #f6f7fb !important;
     margin: 0 !important;
     overflow: auto !important;
 }
 
-/* Ẩn tất cả ngoại trừ clean-viewer-container và modal overlay */
+/* Hide everything except the clean viewer container and the modal overlay */
 body > *:not(#clean-viewer-container):not(#sdc-overlay) {
     display: none !important;
 }
 
-/* Container chứa toàn bộ trang tài liệu */
+/* Container for all document pages */
 #clean-viewer-container {
     position: absolute;
     top: 0;
@@ -28,7 +28,7 @@ body > *:not(#clean-viewer-container):not(#sdc-overlay) {
     z-index: 9999;
 }
 
-/* Mỗi trang tài liệu */
+/* Individual document page */
 .std-page {
     position: relative !important;
     background-color: white;
@@ -39,7 +39,7 @@ body > *:not(#clean-viewer-container):not(#sdc-overlay) {
     border: none !important;
 }
 
-/* Che watermark ở cuối trang */
+/* Cover bottom watermark strip */
 .std-page::after {
     content: "";
     position: absolute;
@@ -52,7 +52,7 @@ body > *:not(#clean-viewer-container):not(#sdc-overlay) {
     pointer-events: none;
 }
 
-/* Layer ảnh nền */
+/* Background image layer */
 .layer-bg {
     position: absolute;
     top: 0;
@@ -71,7 +71,7 @@ body > *:not(#clean-viewer-container):not(#sdc-overlay) {
     display: block;
 }
 
-/* Layer text (overlay trên ảnh nền) */
+/* Text overlay layer (on top of the background image) */
 .layer-text {
     position: absolute;
     top: 0;
@@ -120,7 +120,7 @@ body > *:not(#clean-viewer-container):not(#sdc-overlay) {
         border: none !important;
     }
 
-    /* Trang cuối cùng không cần page-break */
+    /* No page break after the last page */
     .std-page:last-child {
         page-break-after: avoid !important;
         break-after: avoid !important;

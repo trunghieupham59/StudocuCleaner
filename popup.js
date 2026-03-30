@@ -1,7 +1,7 @@
 /**
  * popup.js
- * Chạy trong context của extension popup.
- * Xử lý sự kiện UI và gọi Chrome APIs.
+ * Runs in the extension popup context.
+ * Handles UI events and Chrome API calls.
  */
 
 // ============================================================
