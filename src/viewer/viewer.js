@@ -21,6 +21,21 @@
 
   const SKIP_VALUES = new Set(['none', 'auto', 'normal']);
 
+  // Selectors for watermark/overlay nodes that should be stripped from cloned text layer
+  const WATERMARK_SELECTORS = [
+    '[data-testid="watermark"]',
+    '[data-testid="document-watermark"]',
+    '[class*="watermark"]',
+    '[class*="Watermark"]',
+    '[class*="paywall"]',
+    '[class*="Paywall"]',
+    '[class*="PreviewOverlay"]',
+    '[class*="preview-overlay"]',
+    '[class*="BlurOverlay"]',
+    '[class*="LimitOverlay"]',
+    '[class*="UpgradeModal"]',
+  ].join(',');
+
   const NORMAL_PROPS = [
     'position', 'left', 'top', 'bottom', 'right',
     'font-family', 'font-weight', 'font-style',
@@ -268,8 +283,11 @@
     const isScalableUnderscore = isUnderscoreSpan &&
       Array.from(classList).some(c => /^_(?:\d+[a-z]*|[a-z]+\d*)$/i.test(c));
 
+    // scaleFont: only scale font-size/line-height for actual text elements (.t)
+    // This matches sample/popup.js behavior where scaleFactor is always applied
+    // but aligns with Studocu's DOM where only .t elements hold text
     clone.style.cssText += buildStyleString(element, {
-      scaleFont:   true,
+      scaleFont:   isTextSpan,
       scaleHeight: isTextSpan,
       scaleWidth:  isUnderscoreSpan,
       scaleMargin: isScalableUnderscore,
@@ -282,6 +300,11 @@
       clone.style.setProperty('max-width',         'none',    'important');
       clone.style.setProperty('max-height',        'none',    'important');
     }
+
+    // Force-remove blur/opacity watermark tricks from cloned element
+    clone.style.setProperty('filter',     'none', 'important');
+    clone.style.setProperty('opacity',    '1',    'important');
+    clone.style.setProperty('visibility', 'visible', 'important');
 
     const children = element.childNodes;
     if (children.length === 1 && children[0].nodeType === Node.TEXT_NODE) {
@@ -339,7 +362,19 @@
     layer.className = 'layer-text';
 
     const pcClone = deepCloneWithStyles(pc);
+
+    // Hide background images inside text layer (they are in the bg layer)
     pcClone.querySelectorAll('img').forEach(img => { img.style.display = 'none'; });
+
+    // Remove any watermark / overlay elements that got cloned
+    if (WATERMARK_SELECTORS) {
+      try {
+        for (const el of pcClone.querySelectorAll(WATERMARK_SELECTORS)) {
+          el.remove();
+        }
+      } catch (_) { /* ignore invalid selector edge-cases */ }
+    }
+
     layer.appendChild(pcClone);
     return layer;
   }

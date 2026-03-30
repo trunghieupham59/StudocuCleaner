@@ -9,35 +9,57 @@ body {
   overflow: auto !important;
   height: auto !important;
   user-select: text !important;
+  pointer-events: auto !important;
 }
 
-/* Hide overlays, paywalls, and ads */
+/* ── Hide overlays, paywalls, and ads ─────────────────────── */
 #upgrade-overlay,
+#paywall-overlay,
+#preview-overlay,
 .banner-wrapper,
 [class*="paywall"],
-[class*="overlay"],
 [class*="Paywall"],
-[class*="Overlay"],
-[class*="blur"],
-[class*="Blur"],
-#page-container-wrapper + div,
-.advertisement,
+[class*="PaywallOverlay"],
+[class*="PreviewOverlay"],
+[class*="preview-overlay"],
+[class*="blur-overlay"],
+[class*="BlurOverlay"],
+[class*="PremiumOverlay"],
+[class*="premium-overlay"],
+[class*="UpgradeModal"],
+[class*="upgrade-modal"],
+[class*="LimitOverlay"],
+[class*="limit-overlay"],
+[class*="DocumentPaywall"],
+[class*="document-paywall"],
+[class*="DocumentPreviewBanner"],
+[class*="document-preview-banner"],
 [data-testid="paywall"],
-[data-testid="document-preview-overlay"] {
+[data-testid="document-preview-overlay"],
+[data-testid="preview-overlay"],
+[data-testid="blur-overlay"],
+#page-container-wrapper + div,
+.advertisement {
   display: none !important;
   visibility: hidden !important;
   pointer-events: none !important;
+  opacity: 0 !important;
   z-index: -9999 !important;
 }
 
-/* Ensure document content is always visible */
+/* ── Ensure document content is always visible / unblurred ── */
 .pf,
 .pc,
 #document-wrapper,
+[class*="DocumentPage"],
 [class*="document-page"],
+[class*="Page_page"],
 [data-page-index] {
   display: block !important;
   visibility: visible !important;
   opacity: 1 !important;
   filter: none !important;
+  overflow: visible !important;
+  max-height: none !important;
+  pointer-events: auto !important;
 }
