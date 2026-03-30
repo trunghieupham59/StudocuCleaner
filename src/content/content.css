@@ -1,14 +1,14 @@
 /* ============================================================
-   Studocu Cleaner - Content Script Styles
-   Applied immediately when the page starts loading (document_start)
+   Studocu Cleaner — Content Script Styles
+   Injected at document_start on all Studocu pages.
    ============================================================ */
 
 /* Allow free scrolling and text selection */
 html,
 body {
-    overflow: auto !important;
-    height: auto !important;
-    user-select: text !important;
+  overflow: auto !important;
+  height: auto !important;
+  user-select: text !important;
 }
 
 /* Hide overlays, paywalls, and ads */
@@ -24,10 +24,10 @@ body {
 .advertisement,
 [data-testid="paywall"],
 [data-testid="document-preview-overlay"] {
-    display: none !important;
-    visibility: hidden !important;
-    pointer-events: none !important;
-    z-index: -9999 !important;
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  z-index: -9999 !important;
 }
 
 /* Ensure document content is always visible */
@@ -36,8 +36,8 @@ body {
 #document-wrapper,
 [class*="document-page"],
 [data-page-index] {
-    display: block !important;
-    visibility: visible !important;
-    opacity: 1 !important;
-    filter: none !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  filter: none !important;
 }

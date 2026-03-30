@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Studocu Tools</title>
+  <link rel="stylesheet" href="popup.css" />
+</head>
+<body>
+
+  <div class="app">
+
+    <!-- ── Header ─────────────────────────────────────── -->
+    <header class="header">
+      <div class="header-inner">
+        <div class="header-brand">
+          <div class="brand-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="white" role="img" aria-label="Studocu logo">
+              <title>Studocu logo</title>
+              <path d="m21.271 10.09c-0.1666-0.0231-0.3264-0.0814-0.4689-0.17103-0.1425-0.08965-0.2644-0.20863-0.3578-0.34909-0.0933-0.14046-0.1558-0.2992-0.1836-0.46573-0.0276-0.16653-0.0198-0.33706 0.0229-0.50034l1.8414-7.104c0.046-0.17715 0.0509-0.36252 0.0144-0.54187-0.0365-0.17935-0.1135-0.34792-0.225-0.49276s-0.2546-0.26212-0.4182-0.34282c-0.1637-0.080698-0.3436-0.12268-0.5259-0.12272h-11.005c-2.5234 0.0024162-4.9519 0.9662-6.7949 2.6967-1.843 1.7305-2.9633 4.0987-3.1345 6.6263-0.1712 2.5276 0.61941 5.0263 2.2121 6.9914 1.5927 1.965 3.8689 3.25 6.3688 3.5953 0.16648 0.0233 0.32615 0.0818 0.46852 0.1715 0.14238 0.0897 0.26421 0.2087 0.35749 0.3491 0.09327 0.1404 0.15587 0.299 0.18368 0.4654 0.02781 0.1665 0.02019 0.3369-0.02234 0.5002l-1.8414 7.1039c-0.04593 0.1772-0.05083 0.3626-0.01432 0.5419 0.03652 0.1794 0.11348 0.3479 0.22497 0.4928 0.1115 0.1448 0.25456 0.2621 0.41822 0.3428s0.34356 0.1227 0.52589 0.1227h11.005c2.5234-0.0024 4.9519-0.9662 6.7949-2.6967s2.9633-4.0987 3.1345-6.6263-0.6194-5.0263-2.2122-6.9914c-1.5927-1.965-3.8689-3.25-6.3687-3.5953zm-0.2 9.9066h-10.064c-0.2641-3e-4 -0.5206-0.0885-0.7295-0.2506-0.2089-0.1622-0.35846-0.3893-0.42525-0.6458l-1.97-7.6003c-0.04594-0.1772-0.05084-0.3626-0.01433-0.5419 0.03652-0.1794 0.11347-0.3479 0.22496-0.4928 0.1115-0.1448 0.25456-0.2621 0.41822-0.3428s0.34356-0.1227 0.52589-0.1227h10.063c0.2643-2e-5 0.5212 0.0879 0.7304 0.2501s0.359 0.3895 0.4258 0.6463l1.9701 7.6003c0.0459 0.1772 0.0508 0.3625 0.0143 0.5419-0.0365 0.1793-0.1135 0.3479-0.2249 0.4928-0.1115 0.1448-0.2546 0.2621-0.4183 0.3428-0.1636 0.0807-0.3435 0.1226-0.5259 0.1227z" />
+            </svg>
+          </div>
+          <div class="brand-text">
+            <span class="brand-name">Studocu Tools</span>
+            <span class="brand-sub">Mở khóa tài liệu học tập</span>
+          </div>
+        </div>
+        <span class="badge">v1.1</span>
+      </div>
+    </header>
+
+    <!-- ── Main ───────────────────────────────────────── -->
+    <main class="main">
+
+      <p class="section-label">Thao tác</p>
+
+      <div class="action-list">
+
+        <!-- PDF -->
+        <button id="btn-pdf" type="button" class="action-item action-pdf">
+          <div class="action-icon">
+            <!-- File PDF icon -->
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="PDF icon">
+              <title>PDF icon</title>
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+              <polyline points="14 2 14 8 20 8"/>
+              <line x1="16" y1="13" x2="8" y2="13"/>
+              <line x1="16" y1="17" x2="8" y2="17"/>
+              <polyline points="10 9 9 9 8 9"/>
+            </svg>
+          </div>
+          <div class="action-body">
+            <span class="action-title">Xuất file PDF</span>
+            <span class="action-desc">In tài liệu không có watermark</span>
+          </div>
+          <div class="action-arrow">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </div>
+        </button>
+
+        <!-- Bypass -->
+        <button id="btn-bypass" type="button" class="action-item action-clear">
+          <div class="action-icon">
+            <!-- Shield-off / unlock icon -->
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label="Bypass icon">
+              <title>Bypass icon</title>
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/>
+              <line x1="9" y1="12" x2="15" y2="12"/>
+            </svg>
+          </div>
+          <div class="action-body">
+            <span class="action-title">Bypass mờ &amp; watermark</span>
+            <span class="action-desc">Xóa cookie và tải lại trang</span>
+          </div>
+          <div class="action-arrow">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polyline points="9 18 15 12 9 6"/>
+            </svg>
+          </div>
+        </button>
+
+      </div>
+
+      <!-- Status -->
+      <div id="status" class="status" role="status" aria-live="polite">
+        <span class="status-dot"></span>
+        <span id="status-text">Sẵn sàng hoạt động</span>
+      </div>
+
+    </main>
+
+    <!-- ── Footer ─────────────────────────────────────── -->
+    <footer class="footer">
+      Made with <span class="heart" aria-hidden="true">♥</span> by
+      <a class="author" href="https://github.com/trunghieupham59" target="_blank" rel="noopener noreferrer">
+        trunghieupham59
+      </a>
+    </footer>
+
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

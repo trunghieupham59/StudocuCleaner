@@ -15,11 +15,13 @@
     "activeTab"
   ],
   "host_permissions": [
+    "*://studocu.com/*",
     "*://*.studocu.com/*",
+    "*://studocu.vn/*",
     "*://*.studocu.vn/*"
   ],
   "action": {
-    "default_popup": "popup.html",
+    "default_popup": "src/popup/index.html",
     "default_title": "Studocu Tools",
     "default_icon": {
       "16":  "icons/icon16.png",
@@ -30,15 +32,24 @@
   },
   "content_scripts": [
     {
-      "matches": ["*://*.studocu.com/*", "*://*.studocu.vn/*"],
-      "css": ["custom_style.css"],
+      "matches": [
+        "*://*.studocu.com/*",
+        "*://*.studocu.vn/*"
+      ],
+      "css": ["src/content/content.css"],
       "run_at": "document_start"
     }
   ],
   "web_accessible_resources": [
     {
-      "resources": ["viewer_styles.css", "viewer.js"],
-      "matches": ["*://*.studocu.com/*", "*://*.studocu.vn/*"]
+      "resources": [
+        "src/viewer/viewer.css",
+        "src/viewer/viewer.js"
+      ],
+      "matches": [
+        "*://*.studocu.com/*",
+        "*://*.studocu.vn/*"
+      ]
     }
   ]
 }
