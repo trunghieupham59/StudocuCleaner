@@ -232,16 +232,66 @@
   function observeDOM() {
     if (!document.body) return;
     observer.observe(document.body, {
-      childList:      true,
-      subtree:        true,
-      attributes:     true,
+      childList:       true,
+      subtree:         true,
+      attributes:      true,
       attributeFilter: ['style', 'class'],
     });
+  }
+
+  /**
+   * Dedicated MutationObserver watching ONLY .pf/.pc elements for inline style changes.
+   * Studocu re-applies filter:blur() via React after every render cycle.
+   * This observer fires immediately (no debounce) to override it.
+   */
+  function observePageElements() {
+    const pageObserver = new MutationObserver(mutations => {
+      if (isCleanRunning) return;
+      for (const m of mutations) {
+        if (m.type === 'attributes' && m.attributeName === 'style') {
+          const el = m.target;
+          const f = el.style.filter;
+          if (f && f.includes('blur')) {
+            el.style.setProperty('filter', 'none', 'important');
+          }
+          const op = el.style.opacity;
+          if (op && parseFloat(op) < 0.9) {
+            el.style.setProperty('opacity', '1', 'important');
+          }
+        }
+      }
+    });
+
+    // Observe all current .pf and .pc elements
+    const targets = document.querySelectorAll('.pf, .pc, [data-page-index]');
+    for (const el of targets) {
+      pageObserver.observe(el, { attributes: true, attributeFilter: ['style'] });
+    }
+
+    // Also watch for new .pf/.pc nodes being added so we can attach the observer
+    const addObserver = new MutationObserver(mutations => {
+      for (const m of mutations) {
+        for (const node of m.addedNodes) {
+          if (node.nodeType !== Node.ELEMENT_NODE) continue;
+          const pages = node.matches?.('.pf, .pc, [data-page-index]')
+            ? [node]
+            : Array.from(node.querySelectorAll('.pf, .pc, [data-page-index]'));
+          for (const el of pages) {
+            pageObserver.observe(el, { attributes: true, attributeFilter: ['style'] });
+          }
+        }
+      }
+    });
+
+    if (document.body) {
+      addObserver.observe(document.body, { childList: true, subtree: true });
+    }
   }
 
   // ─── Initialise ──────────────────────────────────────────────────────────
 
   cleanPage();
   observeDOM();
+  observePageElements();
 
 }());
