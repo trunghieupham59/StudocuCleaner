@@ -62,6 +62,51 @@ async function clearStudocuCookies() {
 }
 
 /**
+ * Inject a script into the active tab that clears Studocu-related
+ * localStorage and sessionStorage keys (view counters, paywall flags, etc.)
+ * @param {number} tabId
+ * @returns {Promise<number>} number of storage keys cleared
+ */
+async function clearStudocuStorage(tabId) {
+  const [{ result }] = await chrome.scripting.executeScript({
+    target: { tabId },
+    func: () => {
+      const STUDOCU_KEYS = [
+        // Common view-limit / paywall keys used by Studocu
+        'documentsViewed', 'documentViewCount', 'viewCount',
+        'freeViewsUsed', 'freeViews', 'pageViewCount',
+        'previewCount', 'previewsUsed', 'trialViews',
+        'sdcViewCount', 'sdc_view_count',
+        'userDocumentViewCount', 'guestViewCount',
+        'limit', 'viewLimit', 'docLimit',
+      ];
+
+      let cleared = 0;
+
+      // Remove exact key matches and any key that contains 'studocu', 'view', 'paywall', 'preview', 'limit'
+      const checkKey = k =>
+        STUDOCU_KEYS.includes(k) ||
+        /studocu|viewcount|paywall|preview|guestview|doclimit|freelimit/i.test(k);
+
+      for (const storage of [localStorage, sessionStorage]) {
+        const toDelete = [];
+        for (let i = 0; i < storage.length; i++) {
+          const key = storage.key(i);
+          if (key && checkKey(key)) toDelete.push(key);
+        }
+        for (const key of toDelete) {
+          storage.removeItem(key);
+          cleared++;
+        }
+      }
+
+      return cleared;
+    },
+  });
+  return result ?? 0;
+}
+
+/**
  * Reload the active tab and return its tabId.
  * @returns {Promise<number|null>}
  */
@@ -106,35 +151,41 @@ function onTabLoaded(tabId, onComplete) {
 // ─── Bypass button ────────────────────────────────────────────────────────────
 
 btnBypass?.addEventListener('click', async () => {
-  setStatus('Scanning and clearing cookies…', 'processing');
+  setStatus('Đang xóa cookies và storage…', 'processing');
   setButtonsDisabled(true);
 
   try {
-    const count = await clearStudocuCookies();
-
-    if (count === 0) {
-      // Nothing was removed — do not reload; inform the user
-      setStatus('No Studocu cookies found — already cleared or not logged in.');
+    const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (!tab) {
+      setStatus('Không tìm thấy tab hiện tại.', 'error');
       setButtonsDisabled(false);
       return;
     }
 
-    setStatus(`Removed ${count} cookie(s) — reloading…`, 'processing');
+    // Clear cookies and localStorage/sessionStorage in parallel
+    const [cookieCount, storageCount] = await Promise.all([
+      clearStudocuCookies(),
+      clearStudocuStorage(tab.id),
+    ]);
 
-    // Reload and listen for completion to reset the status bar
-    const tabId = await reloadActiveTab();
+    const total = cookieCount + storageCount;
+    setStatus(`Đã xóa ${cookieCount} cookie(s) và ${storageCount} storage key(s) — đang reload…`, 'processing');
 
-    if (tabId !== null) {
-      onTabLoaded(tabId, () => {
-        setStatus(`Done — removed ${count} cookie(s) and reloaded.`);
-        setButtonsDisabled(false);
-      });
-    } else {
-      setStatus(`Removed ${count} cookie(s).`);
+    // Always reload regardless of whether anything was found —
+    // the page state may still be stale even if storage was already empty
+    chrome.tabs.reload(tab.id);
+
+    onTabLoaded(tab.id, () => {
+      if (total === 0) {
+        setStatus('Đã reload — không tìm thấy cookie/storage để xóa.');
+      } else {
+        setStatus(`Hoàn tất — đã xóa ${cookieCount} cookie(s) và ${storageCount} storage key(s).`);
+      }
       setButtonsDisabled(false);
-    }
+    });
+
   } catch (err) {
-    setStatus(`Error: ${err.message}`, 'error');
+    setStatus(`Lỗi: ${err.message}`, 'error');
     setButtonsDisabled(false);
   }
 });
