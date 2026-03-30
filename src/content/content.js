@@ -109,6 +109,42 @@
   }
 
   /**
+   * Aggressively scan ALL elements with a computed or inline blur filter and remove it.
+   * Studocu sometimes applies blur to arbitrary wrapper divs that don't have
+   * a distinctive class name.
+   */
+  function removeAllBlur() {
+    const all = document.querySelectorAll('*');
+    for (const el of all) {
+      // Skip our own viewer container
+      if (el.id === 'clean-viewer-container') continue;
+      if (el.closest('#clean-viewer-container')) continue;
+
+      // Check inline style first (fast path)
+      const inlineFilter = el.style.filter;
+      if (inlineFilter && inlineFilter.includes('blur')) {
+        el.style.setProperty('filter', 'none', 'important');
+      }
+
+      // Also check computed style (catches CSS-class-based blur)
+      const cs = window.getComputedStyle(el);
+      const computedFilter = cs.getPropertyValue('filter');
+      if (computedFilter && computedFilter.includes('blur')) {
+        el.style.setProperty('filter', 'none', 'important');
+      }
+
+      // Remove pointer-events blocking and opacity dimming
+      const computedOpacity = cs.getPropertyValue('opacity');
+      if (computedOpacity && parseFloat(computedOpacity) < 0.9) {
+        // Only reset opacity if the element looks like a content block (has children)
+        if (el.children.length > 0 && !el.classList.toString().match(/btn|button|icon|nav|header|footer/i)) {
+          el.style.setProperty('opacity', '1', 'important');
+        }
+      }
+    }
+  }
+
+  /**
    * Remove generic fixed/absolute divs that contain paywall text.
    * Uses getComputedStyle so it catches both inline and CSS-class-based positioning.
    * Studocu sometimes uses elements with no distinctive class or data attribute.
@@ -156,6 +192,7 @@
     try {
       removeOverlays();
       unblurPages();
+      removeAllBlur();
       removePreviewBannerByText();
       restoreBodyScroll();
     } finally {

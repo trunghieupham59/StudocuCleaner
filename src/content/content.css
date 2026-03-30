@@ -71,3 +71,14 @@ body {
   pointer-events: auto !important;
   z-index: auto !important;
 }
+
+/* ── Remove blur from ANY element that may be a document wrapper ── */
+/* Studocu applies blur to arbitrary parent divs — this broad rule
+   catches them all at CSS level before JS even runs.               */
+[class*="document"] *,
+[class*="Document"] *,
+[class*="page"] *,
+[class*="Page"] *,
+[data-page-index] * {
+  filter: none !important;
+}
