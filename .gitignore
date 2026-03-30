@@ -1,0 +1,11 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# SVG source (chỉ cần PNG)
+icons/*.svg
+
+# Editor
+.vscode/
+.idea/

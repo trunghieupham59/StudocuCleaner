@@ -1,0 +1,43 @@
+/* ============================================================
+   Studocu Cleaner - Content Script Styles
+   Áp dụng ngay khi trang bắt đầu tải (document_start)
+   ============================================================ */
+
+/* Cho phép cuộn và chọn text tự do */
+html,
+body {
+    overflow: auto !important;
+    height: auto !important;
+    user-select: text !important;
+}
+
+/* Ẩn overlay, paywall, quảng cáo */
+#upgrade-overlay,
+.banner-wrapper,
+[class*="paywall"],
+[class*="overlay"],
+[class*="Paywall"],
+[class*="Overlay"],
+[class*="blur"],
+[class*="Blur"],
+#page-container-wrapper + div,
+.advertisement,
+[data-testid="paywall"],
+[data-testid="document-preview-overlay"] {
+    display: none !important;
+    visibility: hidden !important;
+    pointer-events: none !important;
+    z-index: -9999 !important;
+}
+
+/* Đảm bảo nội dung tài liệu luôn hiển thị */
+.pf,
+.pc,
+#document-wrapper,
+[class*="document-page"],
+[data-page-index] {
+    display: block !important;
+    visibility: visible !important;
+    opacity: 1 !important;
+    filter: none !important;
+}
