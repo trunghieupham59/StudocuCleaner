@@ -131,7 +131,7 @@ Sau khi sửa code, nhấn nút ↺ **Reload** trên trang `chrome://extensions/
 
 ## 👤 Tác giả
 
-**lelotus** — [github.com/lelotus](https://github.com/lelotus)
+**trunghieupham59** — [github.com/lelotus](https://github.com/trunghieupham59)
 
 ---
 
