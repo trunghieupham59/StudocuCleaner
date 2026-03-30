@@ -7,10 +7,18 @@
 
 // ─── Selectors ────────────────────────────────────────────────────────────────
 
-const statusBar  = document.getElementById('status');
-const statusText = document.getElementById('status-text');
-const btnPdf     = document.getElementById('btn-pdf');
-const btnBypass  = document.getElementById('btn-bypass');
+const statusBar     = document.getElementById('status');
+const statusText    = document.getElementById('status-text');
+const btnPdf        = document.getElementById('btn-pdf');
+const btnBypass     = document.getElementById('btn-bypass');
+const versionBadge  = document.getElementById('version-badge');
+
+// ─── Auto-fill version from manifest ─────────────────────────────────────────
+
+if (versionBadge) {
+  const { version } = chrome.runtime.getManifest();
+  versionBadge.textContent = `v${version}`;
+}
 
 // ─── UI helpers ───────────────────────────────────────────────────────────────
 
