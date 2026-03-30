@@ -13,6 +13,8 @@
     '[data-testid="paywall"]',
     '[data-testid="preview-overlay"]',
     '[data-testid="blur-overlay"]',
+    '[data-testid="upgrade-banner"]',
+    '[data-testid="out-of-focus-overlay"]',
     // Class-based overlays (substring match)
     '[class*="PreviewOverlay"]',
     '[class*="preview-overlay"]',
@@ -20,6 +22,10 @@
     '[class*="paywall-overlay"]',
     '[class*="BlurOverlay"]',
     '[class*="blur-overlay"]',
+    '[class*="OutOfFocus"]',
+    '[class*="out-of-focus"]',
+    '[class*="FocusOverlay"]',
+    '[class*="focus-overlay"]',
     '[class*="DocumentPaywall"]',
     '[class*="document-paywall"]',
     '[class*="UpgradeModal"]',
@@ -30,6 +36,8 @@
     '[class*="limit-overlay"]',
     '[class*="DocumentPreviewBanner"]',
     '[class*="document-preview-banner"]',
+    '[class*="Overlay_overlay"]',
+    '[class*="overlay_overlay"]',
     // ID-based
     '#upgrade-overlay',
     '#paywall-overlay',
@@ -46,6 +54,8 @@
     '#document-wrapper',
     '[class*="DocumentPage"]',
     '[class*="Page_page"]',
+    '[class*="document-content"]',
+    '[class*="DocumentContent"]',
   ];
 
   // ─── Paywall text keywords ────────────────────────────────────────────────
@@ -57,6 +67,12 @@
     'Free Trial',
     'Upload to unlock',
     'Share your documents',
+    'Why is this page out of focus',
+    'out of focus',
+    'Become Premium',
+    'Unlock this document',
+    'Read without Ads',
+    'Get Unlimited Downloads',
   ];
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
@@ -135,6 +151,7 @@
    * caused by our own style mutations re-triggering the callback.
    */
   function cleanPage() {
+    isCleanRunning = true;
     observer.disconnect();
     try {
       removeOverlays();
@@ -142,6 +159,7 @@
       removePreviewBannerByText();
       restoreBodyScroll();
     } finally {
+      isCleanRunning = false;
       observeDOM();
     }
   }
@@ -157,18 +175,30 @@
 
   // ─── MutationObserver ────────────────────────────────────────────────────
 
+  // Track whether we are currently writing styles to avoid self-triggering
+  let isCleanRunning = false;
+
   const observer = new MutationObserver(mutations => {
-    // Only react to newly added nodes (not attribute changes we wrote ourselves)
-    const hasNewNodes = mutations.some(m => m.addedNodes.length > 0);
-    if (hasNewNodes) scheduledClean();
+    if (isCleanRunning) return;
+
+    const shouldClean = mutations.some(m => {
+      // New nodes added (overlay injected)
+      if (m.addedNodes.length > 0) return true;
+      // Attribute change on style (blur set via JS after render)
+      if (m.type === 'attributes' && m.attributeName === 'style') return true;
+      return false;
+    });
+
+    if (shouldClean) scheduledClean();
   });
 
   function observeDOM() {
     if (!document.body) return;
     observer.observe(document.body, {
-      childList: true,
-      subtree:   true,
-      // Intentionally NOT observing attributes to avoid self-triggering loops
+      childList:      true,
+      subtree:        true,
+      attributes:     true,
+      attributeFilter: ['style', 'class'],
     });
   }
 
