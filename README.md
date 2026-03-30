@@ -1,11 +1,11 @@
-# Studocu Cleaner
+# Studocu Tools
 
 <p align="center">
-  <img src="icons/icon128.png" width="80" alt="Studocu Cleaner logo">
+  <img src="icons/icon128.png" width="80" alt="Studocu Tools logo">
 </p>
 
 <p align="center">
-  Chrome extension giúp bypass watermark, xóa blur và tạo PDF từ tài liệu <a href="https://www.studocu.com">Studocu</a>.
+  Chrome extension giúp bypass watermark, xóa blur và xuất PDF từ tài liệu <a href="https://www.studocu.com">Studocu</a>.
 </p>
 
 <p align="center">
@@ -22,8 +22,8 @@
 
 | Tính năng | Mô tả |
 |---|---|
-| 📄 **Tạo file PDF** | Clone toàn bộ nội dung tài liệu, loại bỏ watermark rồi mở hộp thoại in để lưu PDF |
-| 🧹 **Bypass blur & watermark** | Xóa cookie Studocu và tải lại trang — hữu ích khi tài liệu bị làm mờ sau khi đọc quá giới hạn |
+| 📄 **Xuất file PDF** | Inject script vào trang, hiện modal xác nhận → tự động mở hộp thoại in để lưu PDF không có watermark |
+| 🧹 **Bypass mờ & watermark** | Xóa toàn bộ cookie Studocu và tải lại trang — hữu ích khi tài liệu bị làm mờ sau khi đọc quá giới hạn |
 
 ---
 
@@ -50,19 +50,21 @@ Sau đó load thư mục `StudocuCleaner` theo bước 4–6 ở trên.
 
 ## 🚀 Sử dụng
 
-### Tạo file PDF
+### Xuất file PDF
 
 1. Mở tài liệu trên Studocu
 2. **Cuộn xuống hết trang** để web tải đủ nội dung
-3. Bấm icon extension → **Tạo file PDF**
-4. Xác nhận trong hộp thoại → trình duyệt sẽ mở hộp thoại in
-5. Chọn **Save as PDF** (hoặc máy in) → Lưu
+3. Bấm icon extension → **Xuất file PDF**
+4. Một modal xác nhận sẽ hiện ra trên trang — bấm **Tạo PDF**
+5. Hộp thoại in mở tự động → chọn **Save as PDF** → Lưu
 
-### Bypass blur & watermark
+> Nếu hộp thoại in không tự mở, nhấn **Ctrl+P** (hoặc **⌘+P** trên macOS).
 
-1. Khi tài liệu bị blur hoặc yêu cầu đăng nhập/nâng cấp
+### Bypass mờ & watermark
+
+1. Khi tài liệu bị blur hoặc yêu cầu đăng nhập / nâng cấp tài khoản
 2. Bấm icon extension → **Bypass mờ & watermark**
-3. Trang tự động tải lại, cookie đã được xóa
+3. Extension xóa toàn bộ cookie Studocu rồi tự động tải lại trang
 
 ---
 
@@ -70,18 +72,22 @@ Sau đó load thư mục `StudocuCleaner` theo bước 4–6 ở trên.
 
 ```
 StudocuCleaner/
-├── manifest.json        # Cấu hình extension (Manifest v3)
-├── popup.html           # Giao diện popup
-├── popup.css            # Style popup
-├── popup.js             # Logic popup (Chrome APIs)
-├── viewer.js            # Script inject vào trang để build PDF
-├── viewer_styles.css    # CSS inject khi tạo PDF
-├── custom_style.css     # Content script CSS (auto-inject)
-└── icons/               # Icon extension các kích thước
-    ├── icon16.png
-    ├── icon32.png
-    ├── icon48.png
-    └── icon128.png
+├── manifest.json            # Cấu hình extension (Manifest v3)
+├── icons/                   # Icon extension các kích thước
+│   ├── icon16.png
+│   ├── icon32.png
+│   ├── icon48.png
+│   └── icon128.png
+└── src/
+    ├── popup/
+    │   ├── index.html       # Giao diện popup
+    │   ├── popup.css        # Style popup
+    │   └── popup.js         # Logic popup (Chrome APIs)
+    ├── viewer/
+    │   ├── viewer.js        # Script inject vào trang để build & in PDF
+    │   └── viewer.css       # CSS inject khi ở chế độ in PDF
+    └── content/
+        └── content.css      # Content script CSS (auto-inject khi mở trang)
 ```
 
 ---
@@ -93,7 +99,7 @@ Extension yêu cầu các quyền sau:
 | Quyền | Lý do |
 |---|---|
 | `cookies` | Đọc và xóa cookie Studocu để bypass blur |
-| `scripting` | Inject CSS và JS vào trang Studocu |
+| `scripting` | Inject CSS (`viewer.css`) và JS (`viewer.js`) vào trang Studocu |
 | `activeTab` | Truy cập tab đang mở |
 
 Extension **chỉ hoạt động** trên `studocu.com` và `studocu.vn`. Không thu thập bất kỳ dữ liệu nào.
@@ -118,11 +124,12 @@ Sau khi sửa code, nhấn nút ↺ **Reload** trên trang `chrome://extensions/
 ## 📝 Changelog
 
 ### v1.1
-- Refactor toàn bộ codebase — tách `viewer.js` riêng biệt
-- Thay `alert/confirm` của browser bằng custom modal đẹp
-- Thêm icon chính thức logo Studocu
-- Cải thiện `custom_style.css` với nhiều selectors hơn
-- Sửa lỗi modal bị ẩn bởi `viewer_styles.css`
+- Đổi tên extension thành **Studocu Tools**
+- Tái cấu trúc toàn bộ dự án — chuyển source vào thư mục `src/` (popup, viewer, content)
+- Popup mới: thiết kế lại giao diện, thêm status bar phản hồi trạng thái realtime
+- Thay `alert/confirm` của browser bằng **custom modal** (animate, có backdrop blur)
+- `viewer.js` inject trực tiếp vào trang qua `chrome.scripting`, tự động gọi `window.print()`
+- `content.css` auto-inject ở `document_start` cho mọi trang Studocu
 
 ### v1.0
 - Phát hành lần đầu
@@ -131,7 +138,7 @@ Sau khi sửa code, nhấn nút ↺ **Reload** trên trang `chrome://extensions/
 
 ## 👤 Tác giả
 
-**trunghieupham59** — [github.com/lelotus](https://github.com/trunghieupham59)
+**trunghieupham59** — [github.com/trunghieupham59](https://github.com/trunghieupham59)
 
 ---
 
