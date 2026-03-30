@@ -9,3 +9,5 @@ icons/*.svg
 # Editor
 .vscode/
 .idea/
+
+.sample
