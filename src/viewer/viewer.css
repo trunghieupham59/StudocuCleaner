@@ -89,8 +89,9 @@ body > *:not(#clean-viewer-container):not(#sdc-overlay) {
   overflow: visible !important;
 }
 
-.layer-text .pc,
-.layer-text .pc * {
+/* Only reset transform on .pc itself — child elements (subscripts, etc.)
+   may carry their own transform: translateY() for vertical positioning */
+.layer-text .pc {
   transform: none !important;
   overflow: visible !important;
   max-width: none !important;
@@ -103,7 +104,7 @@ body > *:not(#clean-viewer-container):not(#sdc-overlay) {
 @media print {
   @page {
     margin: 0;
-    size: auto;
+    size: A4 portrait;
   }
 
   body {
@@ -114,30 +115,25 @@ body > *:not(#clean-viewer-container):not(#sdc-overlay) {
 
   #clean-viewer-container {
     position: static !important;
-    width: 100% !important;
+    width: 210mm !important;
     padding: 0 !important;
-    margin: 0 !important;
+    margin: 0 auto !important;
   }
 
   .std-page {
+    width: 210mm !important;
     margin: 0 !important;
     box-shadow: none !important;
     page-break-after: always !important;
     break-after: always !important;
     border: none !important;
-    overflow: visible !important;
+    overflow: hidden !important;
   }
 
   /* No page break after the last page */
   .std-page:last-child {
     page-break-after: avoid !important;
     break-after: avoid !important;
-  }
-
-  /* Ensure layers don't clip content during print */
-  .layer-bg,
-  .layer-text {
-    overflow: visible !important;
   }
 
   /* Ensure pseudo elements (watermark covers) print correctly */
