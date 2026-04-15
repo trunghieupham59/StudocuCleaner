@@ -1,0 +1,96 @@
+name: Release Extension
+
+# Trigger: on tag push matching v* (e.g. v1.2, v1.3.0)
+# Push the tag from the develop branch — the workflow will merge develop → main automatically.
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write   # required to push to main and create GitHub Releases
+
+jobs:
+  build-and-release:
+    name: Merge develop → main, Build ZIP & Create Release
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout full history (needed for merge)
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0          # full history so we can merge branches
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # 2. Extract version from tag (strip "v" prefix)
+      - name: Extract version from tag
+        id: version
+        run: |
+          TAG="${GITHUB_REF_NAME}"          # e.g. v1.2
+          VER="${TAG#v}"                    # e.g. 1.2
+          echo "tag=${TAG}" >> "$GITHUB_OUTPUT"
+          echo "ver=${VER}" >> "$GITHUB_OUTPUT"
+          echo "zip=studocu-tools-${TAG}.zip" >> "$GITHUB_OUTPUT"
+
+      # 3. Ensure manifest.json version matches the pushed tag
+      - name: Verify manifest version matches tag
+        run: |
+          MANIFEST_VER=$(jq -r '.version' manifest.json)
+          TAG_VER="${{ steps.version.outputs.ver }}"
+          if [ "$MANIFEST_VER" != "$TAG_VER" ]; then
+            echo "❌ manifest.json version ($MANIFEST_VER) does not match tag ($TAG_VER)"
+            exit 1
+          fi
+          echo "✅ Version match: $MANIFEST_VER"
+
+      # 4. Merge develop into main and push
+      - name: Merge develop into main
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          # Switch to main (create it if it doesn't exist yet)
+          git checkout main || git checkout -b main
+
+          # Merge the tagged commit (from develop) into main
+          git merge --no-ff "${{ steps.version.outputs.tag }}" \
+            -m "chore: release ${{ steps.version.outputs.tag }} — merge develop into main"
+
+          git push origin main
+          echo "✅ develop merged into main"
+
+      # 5. Build extension ZIP (only files needed by Chrome)
+      - name: Build extension ZIP
+        run: |
+          ZIP_NAME="${{ steps.version.outputs.zip }}"
+          zip -r "$ZIP_NAME" \
+            manifest.json \
+            icons/ \
+            src/ \
+            --exclude "*.DS_Store" \
+            --exclude "*/.gitkeep"
+          echo "📦 Created: $ZIP_NAME"
+          unzip -l "$ZIP_NAME"
+
+      # 6. Create GitHub Release and upload ZIP
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: "Studocu Tools ${{ steps.version.outputs.tag }}"
+          body: |
+            ## 📦 Studocu Tools ${{ steps.version.outputs.tag }}
+
+            ### Manual Installation
+            1. Download **${{ steps.version.outputs.zip }}** below
+            2. Unzip the file
+            3. Open Chrome → `chrome://extensions/`
+            4. Enable **Developer mode**
+            5. Click **Load unpacked** → select the unzipped folder
+
+            ### Changes
+            > See the commit history for details on what changed in this release.
+          files: ${{ steps.version.outputs.zip }}
+          draft: false
+          prerelease: false
