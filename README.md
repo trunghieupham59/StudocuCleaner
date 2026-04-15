@@ -5,7 +5,7 @@
 </p>
 
 <p align="center">
-  Chrome extension giúp bypass watermark, xóa blur và xuất PDF từ tài liệu <a href="https://www.studocu.com">Studocu</a>.
+  A Chrome extension that bypasses watermarks, removes blur overlays, and exports clean PDFs from <a href="https://www.studocu.com">Studocu</a> documents.
 </p>
 
 <p align="center">
@@ -18,125 +18,159 @@
 
 ---
 
-## ✨ Tính năng
+## ✨ Features
 
-| Tính năng | Mô tả |
+| Feature | Description |
 |---|---|
-| 📄 **Xuất file PDF** | Inject script vào trang, hiện modal xác nhận → tự động mở hộp thoại in để lưu PDF không có watermark |
-| 🧹 **Bypass mờ & watermark** | Xóa toàn bộ cookie Studocu và tải lại trang — hữu ích khi tài liệu bị làm mờ sau khi đọc quá giới hạn |
+| 📄 **Export PDF** | Injects a viewer into the page that clones all document pages, auto-scales them to A4 size, and opens the browser print dialog to save a clean PDF |
+| 🧹 **Bypass blur & watermark** | Deletes all Studocu cookies and reloads the page — resets the view limit that causes documents to blur after reading too many pages |
+| 🛡️ **Auto content cleaning** | Content script runs on every Studocu page at load time: removes paywall overlays, strips blur filters, replaces blurred image URLs, and watches for React re-injection via MutationObserver |
 
 ---
 
-## 📦 Cài đặt
+## 📦 Installation
 
-### Cách 1 — Tải bản Release (khuyên dùng)
+### Option 1 — Download the Release (recommended)
 
-1. Vào trang [**Releases**](https://github.com/trunghieupham59/StudocuCleaner/releases/latest)
-2. Tải file **`studocu-cleaner-vX.X.zip`**
-3. Giải nén ra một thư mục
-4. Mở Chrome → vào `chrome://extensions/`
-5. Bật **Developer mode** (góc trên phải)
-6. Kéo thả thư mục vừa giải nén vào trang, hoặc bấm **Load unpacked** và chọn thư mục
+1. Go to [**Releases**](https://github.com/trunghieupham59/StudocuCleaner/releases/latest)
+2. Download **`studocu-tools-vX.X.zip`**
+3. Unzip to a folder
+4. Open Chrome → navigate to `chrome://extensions/`
+5. Enable **Developer mode** (top-right toggle)
+6. Click **Load unpacked** and select the unzipped folder
 
-### Cách 2 — Clone source
+### Option 2 — Clone the source
 
 ```bash
 git clone https://github.com/trunghieupham59/StudocuCleaner.git
 ```
 
-Sau đó load thư mục `StudocuCleaner` theo bước 4–6 ở trên.
+Then load the `StudocuCleaner` folder using steps 4–6 above.
 
 ---
 
-## 🚀 Sử dụng
+## 🚀 Usage
 
-### Xuất file PDF
+### Export PDF
 
-1. Mở tài liệu trên Studocu
-2. **Cuộn xuống hết trang** để web tải đủ nội dung
-3. Bấm icon extension → **Xuất file PDF**
-4. Một modal xác nhận sẽ hiện ra trên trang — bấm **Tạo PDF**
-5. Hộp thoại in mở tự động → chọn **Save as PDF** → Lưu
+1. Open a document on Studocu
+2. **Scroll to the bottom** so all pages are fully loaded
+3. Click the extension icon → **Export PDF**
+4. A confirmation dialog appears — click **OK**
+5. The browser print dialog opens automatically → select **Save as PDF** → Save
 
-> Nếu hộp thoại in không tự mở, nhấn **Ctrl+P** (hoặc **⌘+P** trên macOS).
+> If the print dialog doesn't open automatically, press **Ctrl+P** (**⌘+P** on macOS).
 
-### Bypass mờ & watermark
+### Bypass blur & watermark
 
-1. Khi tài liệu bị blur hoặc yêu cầu đăng nhập / nâng cấp tài khoản
-2. Bấm icon extension → **Bypass mờ & watermark**
-3. Extension xóa toàn bộ cookie Studocu rồi tự động tải lại trang
+1. When a document is blurred or prompts you to log in / upgrade
+2. Click the extension icon → **Bypass blur & watermark**
+3. The extension deletes all Studocu cookies and automatically reloads the page
 
 ---
 
-## 📁 Cấu trúc
+## 📁 Project Structure
 
 ```
 StudocuCleaner/
-├── manifest.json            # Cấu hình extension (Manifest v3)
-├── icons/                   # Icon extension các kích thước
-│   ├── icon16.png
-│   ├── icon32.png
-│   ├── icon48.png
-│   └── icon128.png
+├── manifest.json              # Extension config (Manifest v3)
+├── icons/                     # Extension icons (16, 32, 48, 128 px)
 └── src/
     ├── popup/
-    │   ├── index.html       # Giao diện popup
-    │   ├── popup.css        # Style popup
-    │   └── popup.js         # Logic popup (Chrome APIs)
+    │   ├── index.html         # Popup UI
+    │   ├── popup.css          # Popup styles (dark theme)
+    │   └── popup.js           # Popup logic — cookie clearing, PDF viewer launch
     ├── viewer/
-    │   ├── viewer.js        # Script inject vào trang để build & in PDF
-    │   └── viewer.css       # CSS inject khi ở chế độ in PDF
+    │   ├── viewer.css         # CSS injected when entering PDF mode (hides page UI, A4 print rules)
+    │   └── viewer.js          # (unused in current build — viewer logic lives in popup.js)
     └── content/
-        └── content.css      # Content script CSS (auto-inject khi mở trang)
+        ├── content.css        # Auto-injected at document_start — hides overlays, removes blur via CSS
+        └── content.js         # Auto-injected at document_idle — removes overlays, unblurs images,
+                               # replaces blurred image URLs, MutationObserver anti-re-blur
 ```
 
 ---
 
-## 🔒 Quyền hạn
+## 🔒 Permissions
 
-Extension yêu cầu các quyền sau:
-
-| Quyền | Lý do |
+| Permission | Reason |
 |---|---|
-| `cookies` | Đọc và xóa cookie Studocu để bypass blur |
-| `scripting` | Inject CSS (`viewer.css`) và JS (`viewer.js`) vào trang Studocu |
-| `activeTab` | Truy cập tab đang mở |
+| `cookies` | Read and delete Studocu cookies to reset the view counter |
+| `scripting` | Inject `viewer.css` and the PDF viewer function into the active Studocu tab |
+| `activeTab` | Access the currently open tab when the user clicks the extension |
+| `tabs` | Listen for tab reload completion after cookie clearing |
 
-Extension **chỉ hoạt động** trên `studocu.com` và `studocu.vn`. Không thu thập bất kỳ dữ liệu nào.
+The extension **only activates** on `studocu.com` and `studocu.vn`. No data is collected or transmitted.
 
 ---
 
-## 🛠️ Phát triển
+## 🛠️ Development
 
 ```bash
-# Clone repo
+# Clone the repo
 git clone https://github.com/trunghieupham59/StudocuCleaner.git
 cd StudocuCleaner
 
-# Load vào Chrome để test
-# chrome://extensions/ → Load unpacked → chọn thư mục này
+# Load into Chrome for testing
+# chrome://extensions/ → Load unpacked → select this folder
 ```
 
-Sau khi sửa code, nhấn nút ↺ **Reload** trên trang `chrome://extensions/` để áp dụng thay đổi.
+After editing any file, click the **↺ Reload** button on `chrome://extensions/` to apply changes.
+
+### Release workflow
+
+Releases are automated via GitHub Actions (`.github/workflows/release.yml`):
+
+```bash
+# 1. Bump version in manifest.json (e.g. "1.5")
+# 2. Commit and push to develop
+git add manifest.json && git commit -m "chore: bump version to 1.5" && git push origin develop
+
+# 3. Tag and push — this triggers the workflow
+git tag v1.5 && git push origin v1.5
+```
+
+The workflow will:
+- Verify that `manifest.json` version matches the tag
+- Merge `develop` → `main`
+- Build a ZIP containing `manifest.json`, `icons/`, and `src/`
+- Create a GitHub Release with the ZIP attached
 
 ---
 
 ## 📝 Changelog
 
+### v1.4
+- Use `RELEASE_PAT` secret in release workflow to allow merging into protected `main` branch
+- Auto-scale document pages to A4 width when building the PDF viewer (via CSS transform + `scaleWrap`)
+- Print CSS updated to `@page { size: A4 portrait }` for consistent output
+- Reset `letter-spacing` and `word-spacing` to `0` — Studocu's internal px values caused overflowing text
+- Fix `viewer.css`: only reset `transform: none` on `.pc`, not on child subscript/superscript spans
+
+### v1.3
+- Fix PDF viewer rendering: `SCALE_FACTOR` changed from `4` to `1` — text sizes are now preserved at their computed display values instead of being divided by 4 before browser print scaling
+- Add `transform` and `vertical-align` to copied CSS props for correct subscript/superscript positioning
+
+### v1.2
+- Add `"tabs"` permission to manifest — required for `chrome.tabs.onUpdated` listener
+- Fix **Bypass** button: `clearStudocuStorage()` failure (on non-Studocu tabs) no longer blocks cookie clearing and page reload
+- Port exact bypass logic from v1.0 sample: sequential cookie loop, `setTimeout(1000)` reload
+- Port exact PDF viewer logic from v1.0 sample: `func: runCleanViewer` injection, `alert/confirm` dialogs
+
 ### v1.1
-- Đổi tên extension thành **Studocu Tools**
-- Tái cấu trúc toàn bộ dự án — chuyển source vào thư mục `src/` (popup, viewer, content)
-- Popup mới: thiết kế lại giao diện, thêm status bar phản hồi trạng thái realtime
-- Thay `alert/confirm` của browser bằng **custom modal** (animate, có backdrop blur)
-- `viewer.js` inject trực tiếp vào trang qua `chrome.scripting`, tự động gọi `window.print()`
-- `content.css` auto-inject ở `document_start` cho mọi trang Studocu
+- Renamed extension to **Studocu Tools**
+- Restructured project — source moved to `src/` (popup, viewer, content)
+- New popup UI: redesigned with status bar and real-time feedback
+- `viewer.js` injected directly into the page via `chrome.scripting`
+- `content.css` auto-injected at `document_start` on all Studocu pages
+- Added `content.js`: MutationObserver-based dynamic overlay removal, blurred image URL replacement, React re-injection defense
 
 ### v1.0
-- Phát hành lần đầu
+- Initial release
 
 ---
 
-## 👤 Tác giả
+## 👤 Author
 
 **trunghieupham59** — [github.com/trunghieupham59](https://github.com/trunghieupham59)
 
@@ -144,4 +178,4 @@ Sau khi sửa code, nhấn nút ↺ **Reload** trên trang `chrome://extensions/
 
 ## ⚠️ Disclaimer
 
-Extension này được tạo cho mục đích học tập cá nhân. Vui lòng tôn trọng bản quyền tác giả của tài liệu.
+This extension is created for personal study purposes only. Please respect the copyright of document authors.
