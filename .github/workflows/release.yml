@@ -17,11 +17,13 @@ jobs:
 
     steps:
       # 1. Checkout full history (needed for merge)
+      # Uses RELEASE_PAT (repo owner PAT) so the bot can push to protected main branch.
+      # Fallback to GITHUB_TOKEN if PAT is not set (merge step may fail for protected branches).
       - name: Checkout repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0          # full history so we can merge branches
-          token: ${{ secrets.GITHUB_TOKEN }}
+          token: ${{ secrets.RELEASE_PAT || secrets.GITHUB_TOKEN }}
 
       # 2. Extract version from tag (strip "v" prefix)
       - name: Extract version from tag

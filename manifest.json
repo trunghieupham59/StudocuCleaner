@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Studocu Cleaner",
   "description": "Bypass watermark, xóa blur và tạo PDF từ tài liệu Studocu",
-  "version": "1.3",
+  "version": "1.4",
   "icons": {
     "16":  "icons/icon16.png",
     "32":  "icons/icon32.png",
