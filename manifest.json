@@ -12,7 +12,8 @@
   "permissions": [
     "cookies",
     "scripting",
-    "activeTab"
+    "activeTab",
+    "tabs"
   ],
   "host_permissions": [
     "*://studocu.com/*",
