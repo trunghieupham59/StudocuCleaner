@@ -202,9 +202,12 @@ btnBypass?.addEventListener('click', async () => {
 
 btnPdf?.addEventListener('click', async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (!tab) return;
+  if (!tab) {
+    setStatus('Không tìm thấy tab hiện tại.', 'error');
+    return;
+  }
 
-  setStatus('Preparing PDF print mode…', 'processing');
+  setStatus('Đang chuẩn bị chế độ in PDF…', 'processing');
   setButtonsDisabled(true);
 
   try {
@@ -218,9 +221,9 @@ btnPdf?.addEventListener('click', async () => {
       files:  ['src/viewer/viewer.js'],
     });
 
-    setStatus('Ready — press Ctrl+P to print.');
+    setStatus('Sẵn sàng — chọn số trang và nhấn Tạo PDF.');
   } catch (err) {
-    setStatus(`Error: ${err.message}`, 'error');
+    setStatus(`Lỗi: ${err.message}`, 'error');
   } finally {
     setButtonsDisabled(false);
   }
