@@ -25,12 +25,15 @@
 ## 2. Xuất PDF ra trang trắng / mất nền ảnh
 
 **Triệu chứng:** PDF có khung trang nhưng không có ảnh nền, chỉ có text.
+Một biến thể khác là viewer tìm đúng N trang nhưng print preview sinh 2N trang.
 
 **Nguyên nhân thường gặp:**
 
 - Chưa cuộn xuống cuối tài liệu nên Studocu chưa lazy-load đủ ảnh trang.
 - Refactor inject `viewer.css` trước khi `viewer.js` clone DOM. CSS viewer ẩn DOM gốc, làm
   `getComputedStyle()` của text layer sai và khiến chữ bị phóng/chồng.
+- Chiều cao `.std-page` tính bằng px bị Chrome quy đổi hơi vượt quá A4, khiến mỗi trang tràn
+  sang một trang in phụ.
 
 **Cách fix:**
 
@@ -38,6 +41,7 @@
   `window.print()` sau 1 giây.
 - Nếu tách viewer thành file riêng, chạy `viewer.js` trước để clone layout gốc, sau đó mới inject
   `viewer.css`.
+- Trong `@media print`, ép `.std-page` về `210mm × 297mm` và đặt `break-inside: avoid-page`.
 
 **Nếu vẫn lỗi:**
 
