@@ -132,11 +132,6 @@ export function waitForTabLoaded(tabId) {
 }
 
 export async function injectViewer(tabId, language) {
-  await chrome.scripting.insertCSS({
-    target: { tabId },
-    files: ['src/viewer/viewer.css'],
-  });
-
   await chrome.scripting.executeScript({
     target: { tabId },
     func: lang => {
@@ -149,6 +144,11 @@ export async function injectViewer(tabId, language) {
   await chrome.scripting.executeScript({
     target: { tabId },
     files: ['src/viewer/viewer.js'],
+  });
+
+  await chrome.scripting.insertCSS({
+    target: { tabId },
+    files: ['src/viewer/viewer.css'],
   });
 }
 

@@ -91,7 +91,7 @@ Popup hiện được tách thành các module nhỏ trong `src/popup/modules/`:
 | --- | --- |
 | `i18n.js` | Dictionary `vi/en`, `t(key, values)`, `getLanguage`, `setLanguage`, `onLanguageChange`. Persist lựa chọn vào `localStorage`. |
 | `status.js` | `createStatusController(rootEl, textEl)` → `set(message, state)`, `reset(message)` (state ∈ idle/processing/done/error). |
-| `chrome-api.js` | Wrapper mỏng quanh `chrome.tabs`, `chrome.cookies`, `chrome.scripting`. Bao gồm `requireStudocuTab`, `clearStudocuCookies`, `clearStudocuStorageSafely`, `reloadTab`, `waitForTabLoaded`, `injectViewer`. |
+| `chrome-api.js` | Wrapper mỏng quanh `chrome.tabs`, `chrome.cookies`, `chrome.scripting`. Bao gồm `getActiveTab`, `requireStudocuTab`, `clearStudocuCookies`, `reloadTab`, `injectViewer`. |
 | `actions.js` | `runBypass(ctx)` và `runPdf(ctx)` — high-level handler cho 2 nút trong popup. |
 
 `popup.js` chỉ làm view layer: bind DOM ↔ module, render i18n theo `data-i18n`, đồng bộ ngôn ngữ
@@ -102,17 +102,10 @@ sang viewer thông qua `window.__SDC_LANGUAGE__`.
 ```text
 Click
  │
- ├─ requireStudocuTab()   ─► throw nếu không phải studocu.com / studocu.vn
- │
- ├─ Promise.all([
- │     clearStudocuCookies(),         // chrome.cookies.getAll → filter studocu → remove
- │     clearStudocuStorageSafely(tab.id), // executeScript → wipe localStorage/sessionStorage
- │ ])
- │
- ├─ const loaded = waitForTabLoaded(tab.id)   // listener arm TRƯỚC reload (fix race)
- ├─ await reloadTab(tab.id)
- └─ await loaded                              // resolve khi tab status='complete' hoặc timeout 15s
-       └─ Cập nhật status bar kết quả
+ ├─ getActiveTab()            ─► lấy tab hiện tại để reload sau khi xóa cookie
+ ├─ clearStudocuCookies()     ─► chrome.cookies.getAll → filter studocu → remove
+ ├─ Cập nhật status bar kết quả
+ └─ setTimeout(1000) reloadTab(tab.id)
 ```
 
 #### Nút "Xuất file PDF"
@@ -120,9 +113,9 @@ Click
 ```text
 Click
  │
- ├─ chrome.scripting.insertCSS  ← inject viewer.css (chỉ kích hoạt khi body có .sdc-viewer-active)
  ├─ chrome.scripting.executeScript ← set window.__SDC_LANGUAGE__
- └─ chrome.scripting.executeScript ← inject viewer.js (build container + print)
+ ├─ chrome.scripting.executeScript ← inject viewer.js (clone DOM gốc + build container + print)
+ └─ chrome.scripting.insertCSS  ← inject viewer.css sau khi clone xong để không làm sai computed style
 ```
 
 ---
@@ -134,49 +127,40 @@ Click
 #### Luồng hoạt động
 
 ```text
-1. Guard: nếu #clean-viewer-container đã tồn tại → return (tránh inject 2 lần)
+1. Tìm tất cả div[data-page-index]
+   └─ Nếu không có trang → alert() → return
 
-2. Tìm tất cả div[data-page-index]
-   └─ Nếu không có trang → showAlert() → return
+2. confirm("Tìm thấy N trang") → người dùng bấm OK
 
-3. showConfirm("Tìm thấy N trang") → người dùng bấm "Tạo PDF"
-
-4. Khi user xác nhận, thêm `.sdc-viewer-active` vào body
-
-5. Với mỗi trang:
-   ├─ getPageDimensions() → ưu tiên kích thước img.bi đã render, fallback .pc / A4
+3. Với mỗi trang:
+   ├─ Lấy kích thước từ `.pc`, fallback bounding rect / A4
    ├─ Tạo `.std-page` rộng 794px và `scaleWrap` để scale về A4 width
-   └─ buildImageLayer()  → clone img.bi làm nội dung in chính
+   ├─ Clone ảnh nền `img.bi` / `img`
+   └─ Clone text layer `.pc` kèm computed styles
 
-6. Append #clean-viewer-container vào document.body
+4. Append #clean-viewer-container vào document.body
 
-7. waitForImagesToLoad(container, 1000) → đảm bảo <img> nền clone xong
-8. window.print()
+5. setTimeout(1000) → window.print()
 ```
-
-#### Hàm `waitForImagesToLoad(root, timeoutMs)`
-
-Đợi tất cả `<img>` trong `root` resolve (load hoặc error) — fallback timeout `printDelay = 1000ms`
-nếu CDN không trả lời. Resolve, không reject. Giải quyết bug PDF in ra trang trắng khi mạng chậm.
 
 #### Hàm `deepCloneWithStyles(element)`
 
-Clone đệ quy element kèm toàn bộ computed CSS cho chế độ text layer dự phòng. Mặc định export đang dùng image layer vì clone text HTML của Studocu dễ lệch transform/font metric và gây chồng chữ khi in:
+Clone đệ quy element `.pc` kèm computed CSS để giữ text layer giống luồng đang hoạt động trên `develop`:
 
 | Điều kiện | Scale áp dụng |
 | --- | --- |
-| Element có class `.t` (text span) | Scale `font-size`, `line-height`, `height` ÷ 4 |
-| Element có class `._` (underscore span) | Scale `width` ÷ 4 |
-| Element `._` có class dạng `_123px` | Scale margin ÷ 4 |
+| Element có class `.t` (text span) | Giữ `font-size`, `line-height`, `height` theo computed value |
+| Element có class `._` (underscore span) | Giữ `width` theo computed value |
+| Element `._` có class dạng `_123px` | Giữ margin theo computed value |
 | Element `.pc` | Reset `transform: none`, xóa `max-width/height` |
-| Mọi element | `filter:none`, `opacity:1`, `visibility:visible`, reset `letter-spacing` |
+| Mọi element | Reset `letter-spacing`, `word-spacing`, overflow và clip |
 
 #### `viewer.css`
 
-- `body.sdc-viewer-active > *:not(#clean-viewer-container):not(#sdc-overlay) { display:none }` — chỉ ẩn trang gốc sau khi user xác nhận tạo PDF
+- `body > *:not(#clean-viewer-container):not(#sdc-overlay) { display:none }` — ẩn trang gốc sau khi CSS viewer được inject, giống `develop`
 - `.std-page::before/after` — dải trắng cao 10px / 36px che watermark đầu/cuối mỗi trang
 - `@media print`:
-  - `@page { margin: 0; size: auto }`
+  - `@page { margin: 0; size: A4 portrait }`
   - `page-break-after: always` cho từng `.std-page` (trang in riêng biệt)
   - `.std-page:last-child` → `page-break-after: avoid`
 
@@ -201,14 +185,13 @@ Nhấn icon extension
 
             ├─► [Bypass mờ & watermark]
             │     ├─ Xóa cookie Studocu
-            │     ├─ Xóa localStorage/sessionStorage
-            │     └─ Reload tab → đợi load xong → cập nhật status
+            │     └─ Reload tab sau 1 giây
 
             └─► [Xuất file PDF]
                   ├─ Inject viewer.css  (ẩn trang gốc)
                   └─ Inject viewer.js
-                        ├─ showConfirm modal
-                        ├─ Clone từng trang bằng image layer
+                        ├─ native confirm
+                        ├─ Clone từng trang bằng image layer + text layer
                         ├─ Append #clean-viewer-container
                         └─ window.print() sau 1 giây
 ```
@@ -220,9 +203,9 @@ Nhấn icon extension
 | Quyền | Lý do sử dụng |
 | --- | --- |
 | `cookies` | `clearStudocuCookies()` trong `modules/chrome-api.js` |
-| `scripting` | Inject `viewer.css`, `viewer.js`, và func `clearStudocuStorage` |
+| `scripting` | Inject `viewer.css` và `viewer.js` |
 | `activeTab` | Lấy tabId của tab đang mở để thao tác |
-| `tabs` | `chrome.tabs.onUpdated` listener đợi tab reload xong |
+| `tabs` | Query và reload tab hiện tại sau khi xóa cookie |
 
 Extension **chỉ hoạt động** trên `studocu.com` và `studocu.vn`. Không gửi dữ liệu ra ngoài.
 
@@ -291,5 +274,5 @@ StudocuCleaner/
     │       └── actions.js     # runBypass / runPdf
     └── viewer/
         ├── viewer.css         # Print styles — ẩn trang gốc, layout trang in
-        └── viewer.js          # Build clean viewer container → waitForImagesToLoad → window.print()
+        └── viewer.js          # Build clean viewer container → setTimeout → window.print()
 ```

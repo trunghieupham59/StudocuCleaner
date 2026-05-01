@@ -15,9 +15,8 @@
 
 ### Trong `src/viewer/viewer.js`
 
-| Hằng số | Vai trò |
-| --- | --- |
-| `WATERMARK_SELECTORS` | Selector watermark/overlay cần xóa khỏi clone trước khi in |
+Không còn selector riêng trong viewer. Exporter giữ luồng ổn định của `develop`: clone ảnh nền và
+text layer từ DOM đã được `content.js`/`content.css` làm sạch trước đó.
 
 ### Trong `src/content/content.css`
 

@@ -23,7 +23,7 @@
 | Feature | Description |
 | --- | --- |
 | 📄 **Export PDF** | Injects a viewer into the page that clones all document pages, auto-scales them to A4 size, and opens the browser print dialog to save a clean PDF |
-| 🧹 **Bypass blur & watermark** | Deletes Studocu cookies, clears local storage view-limit keys, and reloads the page |
+| 🧹 **Bypass blur & watermark** | Deletes Studocu cookies and reloads the page |
 | 🛡️ **Auto content cleaning** | Content script runs on every Studocu page at load time: removes paywall overlays, strips blur filters, replaces blurred image URLs, and watches for React re-injection via MutationObserver |
 
 ---
@@ -65,7 +65,7 @@ Then load the `StudocuCleaner` folder using steps 4–6 above.
 
 1. When a document is blurred or prompts you to log in / upgrade
 2. Click the extension icon → **Bypass blur & watermark**
-3. The extension deletes Studocu cookies, clears related local/session storage keys, and automatically reloads the page
+3. The extension deletes Studocu cookies and automatically reloads the page
 
 ### Language
 
@@ -100,9 +100,9 @@ StudocuCleaner/
 | Permission | Reason |
 | --- | --- |
 | `cookies` | Read and delete Studocu cookies to reset the view counter |
-| `scripting` | Inject `viewer.css`, `viewer.js`, and storage cleanup into the active Studocu tab |
+| `scripting` | Inject `viewer.css` and `viewer.js` into the active Studocu tab |
 | `activeTab` | Access the currently open tab when the user clicks the extension |
-| `tabs` | Listen for tab reload completion after cookie clearing |
+| `tabs` | Query and reload the active tab after cookie clearing |
 
 The extension **only activates** on `studocu.com` and `studocu.vn`. No data is collected or transmitted.
 
@@ -170,19 +170,16 @@ The workflow will:
 
 ### Unreleased
 
-- **Fix:** Export PDF now prints from the rendered page image layer by default, avoiding
-  Studocu's unstable text-layer transforms that caused oversized/overlapping text.
+- **Fix:** Restore Export PDF rendering to the `develop` path: native confirmation,
+  cloned image + text layers, A4 scale wrapper, and delayed `window.print()`.
 
 ### v1.4.1
 
 - **Fix:** Bypass button could hang at "Reloading tab..." on cached pages — the
   `chrome.tabs.onUpdated` listener is now armed **before** triggering the reload,
   closing a race window where the `complete` event could fire before the listener attached.
-- **Fix:** Export PDF could occasionally produce blank pages on slow networks —
-  the viewer now waits for cloned background image elements to load (with a 1s safety
-  timeout) before calling `window.print()`.
-- **Fix:** Reusing the popup after cancelling a previous PDF run could stack two modals;
-  `showAlert`/`showConfirm` now drop any leftover `#sdc-overlay` before creating a new one.
+- **Fix:** Export PDF rendering was refactored into `src/viewer/viewer.js` while preserving
+  the same image + text-layer output path used by the working popup flow.
 - **Tooling:** Added ESLint v9 flat config, manifest/i18n/docs validators, and a CI
   workflow (`.github/workflows/ci.yml`) running lint + validate + web-ext lint on every PR.
 - **Docs:** Added `docs/troubleshooting.md`, `docs/selectors-audit.md`, `docs/release.md`,

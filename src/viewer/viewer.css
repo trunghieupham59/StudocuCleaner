@@ -1,19 +1,17 @@
-/* biome-ignore-all lint/complexity/noImportantStyles: Injected viewer styles must override Studocu page and print styles. */
-
 /* ============================================================
    Studocu Cleaner — Viewer / Print Styles
    Injected into the page when the user clicks "Create PDF".
    ============================================================ */
 
 /* Reset body to only show the viewer */
-body.sdc-viewer-active {
+body {
   background-color: #f6f7fb !important;
   margin: 0 !important;
   overflow: auto !important;
 }
 
 /* Hide everything except the clean viewer container and the modal overlay */
-body.sdc-viewer-active > *:not(#clean-viewer-container):not(#sdc-overlay) {
+body > *:not(#clean-viewer-container):not(#sdc-overlay) {
   display: none !important;
 }
 
@@ -109,7 +107,7 @@ body.sdc-viewer-active > *:not(#clean-viewer-container):not(#sdc-overlay) {
     size: A4 portrait;
   }
 
-  body.sdc-viewer-active {
+  body {
     background-color: #fff !important;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;

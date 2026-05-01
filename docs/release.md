@@ -57,7 +57,7 @@ Theo dõi run tại tab **Actions** trên GitHub.
 3. Mở `https://www.studocu.com/...` document.
 4. Test 2 nút trong popup:
    - **Bypass blur & watermark** → trang reload, blur biến mất.
-   - **Export PDF** → modal hiện "Found X pages" → Create PDF → print dialog mở.
+   - **Export PDF** → native confirm hiện số trang → OK → print dialog mở.
 
 ## 5. Khi cần rollback
 

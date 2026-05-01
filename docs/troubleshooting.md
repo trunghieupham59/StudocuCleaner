@@ -4,7 +4,7 @@
 
 ## 1. Bypass blur không có hiệu lực sau khi nhấn nút
 
-**Triệu chứng:** Status bar báo "Đã xoá X cookie, Y storage key" nhưng trang vẫn còn mờ.
+**Triệu chứng:** Status bar báo "Đã xoá X cookie" nhưng trang vẫn còn mờ.
 
 **Nguyên nhân thường gặp:**
 
@@ -26,15 +26,18 @@
 
 **Triệu chứng:** PDF có khung trang nhưng không có ảnh nền, chỉ có text.
 
-**Nguyên nhân:**
+**Nguyên nhân thường gặp:**
 
-- Trước fix v1.4.1, `setTimeout(window.print, 1000)` race với việc tải ảnh nền clone — khi mạng
-  chậm, lệnh print chạy trước khi `<img>` clone xong.
+- Chưa cuộn xuống cuối tài liệu nên Studocu chưa lazy-load đủ ảnh trang.
+- Refactor inject `viewer.css` trước khi `viewer.js` clone DOM. CSS viewer ẩn DOM gốc, làm
+  `getComputedStyle()` của text layer sai và khiến chữ bị phóng/chồng.
 
-**Cách fix tự động:**
+**Cách fix:**
 
-- v1.4.1 thêm `waitForImagesToLoad(container, printDelay)` chờ tất cả `<img>` resolve trước khi
-  gọi `window.print()`. Vẫn có timeout 1s để không treo nếu CDN không trả lời.
+- Giữ exporter theo luồng develop: clone ảnh nền + text layer, scale bằng wrapper A4, rồi gọi
+  `window.print()` sau 1 giây.
+- Nếu tách viewer thành file riêng, chạy `viewer.js` trước để clone layout gốc, sau đó mới inject
+  `viewer.css`.
 
 **Nếu vẫn lỗi:**
 
@@ -75,15 +78,17 @@
 
 - Đợi 15s — popup sẽ tự fall through và update status (timeout fallback luôn có).
 
-## 5. Modal "Tìm thấy N trang" hiện 2 lần chồng lên nhau
+## 5. Hộp thoại "Tìm thấy N trang" không hiện
 
-**Nguyên nhân (đã fix v1.4.1):**
+**Nguyên nhân thường gặp:**
 
-- Lần đầu user cancel rồi mở lại popup, viewer.js inject mới nhưng overlay cũ chưa được xóa.
+- `viewer.css` đã inject nhưng `viewer.js` không chạy được do lỗi JavaScript.
+- Trang hiện tại không có `div[data-page-index]`, thường do chưa mở đúng trang tài liệu hoặc tài liệu chưa load.
 
-**Cách fix:**
+**Cách kiểm tra:**
 
-- `showAlert` / `showConfirm` nay đều xóa `#sdc-overlay` cũ trước khi tạo mới.
+- Mở DevTools của tab Studocu và xem Console.
+- Chạy `document.querySelectorAll('div[data-page-index]').length` để kiểm tra số trang đã render.
 
 ## 6. ESLint / web-ext lint fail trên CI mà local pass
 

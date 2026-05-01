@@ -6,11 +6,10 @@
 
 import { t, getLanguage } from './i18n.js';
 import {
-  requireStudocuTab,
+  getActiveTab,
   clearStudocuCookies,
-  clearStudocuStorageSafely,
   reloadTab,
-  waitForTabLoaded,
+  requireStudocuTab,
   injectViewer,
   getErrorMessage,
 } from './chrome-api.js';
@@ -23,23 +22,14 @@ export async function runBypass(ctx) {
   ctx.status.set(t('statusClearing'), 'processing');
 
   try {
-    const tab = await requireStudocuTab();
-    const [cookiesRemoved, storageCleared] = await Promise.all([
-      clearStudocuCookies(),
-      clearStudocuStorageSafely(tab.id),
-    ]);
+    const tab = await getActiveTab();
+    const cookiesRemoved = await clearStudocuCookies();
 
-    ctx.status.set(t('statusReloading'), 'processing');
-    // fix: arm the load listener BEFORE triggering reload to avoid missing
-    // the 'complete' event on fast reloads (race condition observed on cached pages).
-    const loaded = waitForTabLoaded(tab.id);
-    await reloadTab(tab.id);
-    await loaded;
+    ctx.status.set(t('statusBypassDone', { cookies: cookiesRemoved }), 'done');
 
-    ctx.status.set(
-      t('statusBypassDone', { cookies: cookiesRemoved, keys: storageCleared }),
-      'done'
-    );
+    setTimeout(() => {
+      reloadTab(tab.id);
+    }, 1000);
   } catch (error) {
     ctx.status.set(t('statusError', { message: getErrorMessage(error) }), 'error');
   } finally {
