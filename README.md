@@ -21,7 +21,7 @@
 ## ✨ Features
 
 | Feature | Description |
-|---|---|
+| --- | --- |
 | 📄 **Export PDF** | Injects a viewer into the page that clones all document pages, auto-scales them to A4 size, and opens the browser print dialog to save a clean PDF |
 | 🧹 **Bypass blur & watermark** | Deletes Studocu cookies, clears local storage view-limit keys, and reloads the page |
 | 🛡️ **Auto content cleaning** | Content script runs on every Studocu page at load time: removes paywall overlays, strips blur filters, replaces blurred image URLs, and watches for React re-injection via MutationObserver |
@@ -75,7 +75,7 @@ Use the **VI / EN** toggle in the popup to switch the extension UI. The choice i
 
 ## 📁 Project Structure
 
-```
+```text
 StudocuCleaner/
 ├── manifest.json              # Extension config (Manifest v3)
 ├── icons/                     # Extension icons (16, 32, 48, 128 px)
@@ -98,7 +98,7 @@ StudocuCleaner/
 ## 🔒 Permissions
 
 | Permission | Reason |
-|---|---|
+| --- | --- |
 | `cookies` | Read and delete Studocu cookies to reset the view counter |
 | `scripting` | Inject `viewer.css`, `viewer.js`, and storage cleanup into the active Studocu tab |
 | `activeTab` | Access the currently open tab when the user clicks the extension |
@@ -158,6 +158,7 @@ git tag v1.5 && git push origin v1.5
 ```
 
 The workflow will:
+
 - Verify that `manifest.json` version matches the tag
 - Merge `develop` → `main`
 - Build a ZIP containing `manifest.json`, `icons/`, and `src/`
@@ -167,12 +168,18 @@ The workflow will:
 
 ## 📝 Changelog
 
+### Unreleased
+
+- **Fix:** Export PDF now prints from the rendered page image layer by default, avoiding
+  Studocu's unstable text-layer transforms that caused oversized/overlapping text.
+
 ### v1.4.1
+
 - **Fix:** Bypass button could hang at "Reloading tab..." on cached pages — the
   `chrome.tabs.onUpdated` listener is now armed **before** triggering the reload,
   closing a race window where the `complete` event could fire before the listener attached.
 - **Fix:** Export PDF could occasionally produce blank pages on slow networks —
-  the viewer now waits for cloned background `<img>` elements to load (with a 1s safety
+  the viewer now waits for cloned background image elements to load (with a 1s safety
   timeout) before calling `window.print()`.
 - **Fix:** Reusing the popup after cancelling a previous PDF run could stack two modals;
   `showAlert`/`showConfirm` now drop any leftover `#sdc-overlay` before creating a new one.
@@ -182,6 +189,7 @@ The workflow will:
   and an `.clinerules/` directory describing bug-fix and docs-update workflows for AI agents.
 
 ### v1.4
+
 - Use `RELEASE_PAT` secret in release workflow to allow merging into protected `main` branch
 - Auto-scale document pages to A4 width when building the PDF viewer (via CSS transform + `scaleWrap`)
 - Print CSS updated to `@page { size: A4 portrait }` for consistent output
@@ -189,16 +197,19 @@ The workflow will:
 - Fix `viewer.css`: only reset `transform: none` on `.pc`, not on child subscript/superscript spans
 
 ### v1.3
+
 - Fix PDF viewer rendering: `SCALE_FACTOR` changed from `4` to `1` — text sizes are now preserved at their computed display values instead of being divided by 4 before browser print scaling
 - Add `transform` and `vertical-align` to copied CSS props for correct subscript/superscript positioning
 
 ### v1.2
+
 - Add `"tabs"` permission to manifest — required for `chrome.tabs.onUpdated` listener
 - Fix **Bypass** button: `clearStudocuStorage()` failure (on non-Studocu tabs) no longer blocks cookie clearing and page reload
 - Port exact bypass logic from v1.0 sample: sequential cookie loop, `setTimeout(1000)` reload
 - Port exact PDF viewer logic from v1.0 sample: `func: runCleanViewer` injection, `alert/confirm` dialogs
 
 ### v1.1
+
 - Renamed extension to **Studocu Tools**
 - Restructured project — source moved to `src/` (popup, viewer, content)
 - New popup UI: redesigned with status bar and real-time feedback
@@ -207,6 +218,7 @@ The workflow will:
 - Added `content.js`: MutationObserver-based dynamic overlay removal, blurred image URL replacement, React re-injection defense
 
 ### v1.0
+
 - Initial release
 
 ---

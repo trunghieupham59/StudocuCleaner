@@ -1,3 +1,5 @@
+/* biome-ignore-all lint/complexity/noImportantStyles: Injected viewer styles must override Studocu page and print styles. */
+
 /* ============================================================
    Studocu Cleaner — Viewer / Print Styles
    Injected into the page when the user clicks "Create PDF".

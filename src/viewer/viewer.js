@@ -2,22 +2,21 @@
  * viewer.js — PDF viewer injected into the Studocu page.
  * Runs in the web page context (not the extension context).
  */
-(function () {
-  'use strict';
-
+(() => {
   // Guard: prevent re-running if already injected
   if (document.getElementById('clean-viewer-container')) return;
 
   // ─── Config ─────────────────────────────────────────────────────────────────
 
   const CONFIG = {
-    scaleFactor:        1,
-    heightScaleDivisor: 1,
-    widthScaleDivisor:  1,
-    marginDivisor:      1,
+    scaleFactor:        4,
+    heightScaleDivisor: 4,
+    widthScaleDivisor:  4,
+    marginDivisor:      4,
     a4:                 { width: 595.3, height: 841.9 },
     printWidth:         794,
     printDelay:         1000,
+    includeTextLayer:   false,
   };
 
   const TRANSLATIONS = {
@@ -375,6 +374,16 @@
   // ─── Page dimension helper ───────────────────────────────────────────────────
 
   function getPageDimensions(page) {
+    const img = page.querySelector('img.bi') ?? page.querySelector('img');
+    if (img) {
+      const rect = img.getBoundingClientRect();
+      if (rect.width > 10 && rect.height > 10) return { width: rect.width, height: rect.height };
+
+      if (img.naturalWidth > 10 && img.naturalHeight > 10) {
+        return { width: img.naturalWidth, height: img.naturalHeight };
+      }
+    }
+
     const pc = page.querySelector('.pc');
     if (!pc) return CONFIG.a4;
 
@@ -399,7 +408,16 @@
     layer.className = 'layer-bg';
 
     const imgClone = img.cloneNode(true);
-    imgClone.style.cssText = 'width:100%;height:100%;object-fit:cover;object-position:top center;';
+    imgClone.style.cssText = [
+      'display:block',
+      'width:100%',
+      'height:100%',
+      'object-fit:contain',
+      'object-position:top center',
+      'filter:none!important',
+      'opacity:1!important',
+      'visibility:visible!important',
+    ].join(';');
     layer.appendChild(imgClone);
     return layer;
   }
@@ -480,8 +498,10 @@
       const imgLayer = buildImageLayer(page);
       if (imgLayer) scaleWrap.appendChild(imgLayer);
 
-      const textLayer = buildTextLayer(page);
-      if (textLayer) scaleWrap.appendChild(textLayer);
+      if (CONFIG.includeTextLayer) {
+        const textLayer = buildTextLayer(page);
+        if (textLayer) scaleWrap.appendChild(textLayer);
+      }
 
       pageEl.appendChild(scaleWrap);
       container.appendChild(pageEl);
@@ -524,4 +544,4 @@
       setTimeout(finish, timeoutMs);
     });
   }
-}());
+})();

@@ -8,7 +8,7 @@
  */
 
 import { readFileSync } from 'node:fs';
-import { resolve, dirname } from 'node:path';
+import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -31,7 +31,7 @@ function extractDict(source, langKey) {
   if (!m) return null;
 
   let depth = 0;
-  let start = m.index + m[0].length - 1; // position of '{'
+  const start = m.index + m[0].length - 1; // position of '{'
   let end = -1;
   for (let i = start; i < source.length; i++) {
     const ch = source[i];
