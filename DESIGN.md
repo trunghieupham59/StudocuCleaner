@@ -6,13 +6,20 @@
 
 ## 🗂️ Tổng quan kiến trúc
 
-Extension gồm **3 module chính** hoạt động phối hợp:
+Extension gồm **3 module runtime** + **1 lớp tooling** hoạt động phối hợp:
 
 ```
-manifest.json  ──►  cấu hình & khai báo quyền
-src/content/   ──►  chạy ngầm trên mọi trang Studocu (auto-inject)
-src/popup/     ──►  giao diện popup khi nhấn icon extension
-src/viewer/    ──►  inject vào trang khi cần xuất PDF
+manifest.json    ──►  cấu hình & khai báo quyền
+src/content/     ──►  chạy ngầm trên mọi trang Studocu (auto-inject)
+src/popup/       ──►  giao diện popup khi nhấn icon extension
+src/viewer/      ──►  inject vào trang khi cần xuất PDF
+
+# Tooling (không vào ZIP release):
+scripts/         ──►  validator local (manifest / i18n / docs)
+eslint.config.mjs──►  flat config cho ESLint v9
+.github/         ──►  CI (ci.yml) + Release (release.yml)
+.clinerules/     ──►  hướng dẫn cho AI agent / Cline
+docs/            ──►  troubleshooting, selectors-audit, release guide
 ```
 
 ---
@@ -64,40 +71,48 @@ src/viewer/    ──►  inject vào trang khi cần xuất PDF
 
 ### `index.html`
 
-- Popup 340px, gồm: **Header** (logo + version), **Main** (2 nút hành động + status bar), **Footer** (tác giả)
+- Popup 360px, gồm: **Topbar** (logo + version), **Main** (2 nút hành động + language toggle + status bar), **Footer** (tác giả)
 - Version được điền tự động từ `manifest.json` qua `chrome.runtime.getManifest()`
 
 ### `popup.css`
 
-- Dark theme (`#0f0f13`), font Inter, CSS variables đầy đủ (màu, border-radius, shadow, animation)
-- Hiệu ứng hover: card lift (`translateY(-1px)`) + icon rotate + shimmer line
+- Dark utility theme (`#101114`), system font stack, CSS variables gọn cho surface/text/accent/status
+- Hiệu ứng hover: lift nhẹ (`translateY(-1px)`), border rõ hơn và icon điều hướng dịch nhẹ
 - Status bar có 3 trạng thái:
-  - `idle` → dot xanh (`--accent-emerald`)
-  - `processing` → dot vàng pulse (`--accent-amber`)
-  - `error` → dot đỏ (`--accent-rose`)
+  - `idle` / `done` → dot xanh (`--green`)
+  - `processing` → dot vàng pulse (`--amber`)
+  - `error` → dot đỏ (`--red`)
 
-### `popup.js`
+### `popup.js` + `modules/*.js`
 
-#### Nút "Bypass mờ & watermark"
+Popup hiện được tách thành các module nhỏ trong `src/popup/modules/`:
+
+| Module | Trách nhiệm |
+|---|---|
+| `i18n.js` | Dictionary `vi/en`, `t(key, values)`, `getLanguage`, `setLanguage`, `onLanguageChange`. Persist lựa chọn vào `localStorage`. |
+| `status.js` | `createStatusController(rootEl, textEl)` → `set(message, state)`, `reset(message)` (state ∈ idle/processing/done/error). |
+| `chrome-api.js` | Wrapper mỏng quanh `chrome.tabs`, `chrome.cookies`, `chrome.scripting`. Bao gồm `requireStudocuTab`, `clearStudocuCookies`, `clearStudocuStorageSafely`, `reloadTab`, `waitForTabLoaded`, `injectViewer`. |
+| `actions.js` | `runBypass(ctx)` và `runPdf(ctx)` — high-level handler cho 2 nút trong popup. |
+
+`popup.js` chỉ làm view layer: bind DOM ↔ module, render i18n theo `data-i18n`, đồng bộ ngôn ngữ
+sang viewer thông qua `window.__SDC_LANGUAGE__`.
+
+#### Nút "Bypass mờ & watermark" (`runBypass`)
 
 ```
 Click
  │
- ├─ clearStudocuCookies()
- │    └─ chrome.cookies.getAll({})
- │    └─ filter domain includes 'studocu'
- │    └─ chrome.cookies.remove() từng cái
+ ├─ requireStudocuTab()   ─► throw nếu không phải studocu.com / studocu.vn
  │
- ├─ clearStudocuStorage(tabId)  [chạy song song với trên]
- │    └─ chrome.scripting.executeScript → inject func vào trang
- │    └─ Xóa localStorage + sessionStorage key (view-limit, paywall, preview, …)
+ ├─ Promise.all([
+ │     clearStudocuCookies(),         // chrome.cookies.getAll → filter studocu → remove
+ │     clearStudocuStorageSafely(tab.id), // executeScript → wipe localStorage/sessionStorage
+ │ ])
  │
- ├─ chrome.tabs.reload(tab.id)
- │
- └─ onTabLoaded(tabId, callback)
-      └─ Lắng nghe tabs.onUpdated status='complete'
-      └─ Timeout 15s nếu tab không bao giờ complete
-      └─ Cập nhật status bar kết quả
+ ├─ const loaded = waitForTabLoaded(tab.id)   // listener arm TRƯỚC reload (fix race)
+ ├─ await reloadTab(tab.id)
+ └─ await loaded                              // resolve khi tab status='complete' hoặc timeout 15s
+        └─ Cập nhật status bar kết quả
 ```
 
 #### Nút "Xuất file PDF"
@@ -105,7 +120,8 @@ Click
 ```
 Click
  │
- ├─ chrome.scripting.insertCSS  ← inject viewer.css (ẩn mọi thứ ngoài viewer)
+ ├─ chrome.scripting.insertCSS  ← inject viewer.css (chỉ kích hoạt khi body có .sdc-viewer-active)
+ ├─ chrome.scripting.executeScript ← set window.__SDC_LANGUAGE__
  └─ chrome.scripting.executeScript ← inject viewer.js (build container + print)
 ```
 
@@ -125,33 +141,42 @@ Click
 
 3. showConfirm("Tìm thấy N trang") → người dùng bấm "Tạo PDF"
 
-4. Với mỗi trang:
+4. Khi user xác nhận, thêm `.sdc-viewer-active` vào body
+
+5. Với mỗi trang:
    ├─ getPageDimensions() → lấy width/height từ .pc (fallback A4: 595×841)
+   ├─ Tạo `.std-page` rộng 794px và `scaleWrap` để scale về A4 width
    ├─ buildImageLayer()  → clone img.bi làm nền
    └─ buildTextLayer()   → deepCloneWithStyles(.pc) làm lớp text
         └─ Xóa watermark selectors khỏi clone
         └─ Ẩn img trong text layer (đã có ở bg layer)
 
-5. Append #clean-viewer-container vào document.body
+6. Append #clean-viewer-container vào document.body
 
-6. setTimeout(window.print, 1000)
+7. waitForImagesToLoad(container, 1000) → đảm bảo <img> nền clone xong
+8. window.print()
 ```
+
+#### Hàm `waitForImagesToLoad(root, timeoutMs)`
+
+Đợi tất cả `<img>` trong `root` resolve (load hoặc error) — fallback timeout `printDelay = 1000ms`
+nếu CDN không trả lời. Resolve, không reject. Giải quyết bug PDF in ra trang trắng khi mạng chậm.
 
 #### Hàm `deepCloneWithStyles(element)`
 
-Clone đệ quy element kèm toàn bộ computed CSS — đảm bảo không mất style khi tách khỏi stylesheet gốc. Logic scale:
+Clone đệ quy element kèm toàn bộ computed CSS — đảm bảo không mất style khi tách khỏi stylesheet gốc. Text giữ nguyên computed size, sau đó cả trang được scale bằng `scaleWrap` về A4 width:
 
 | Điều kiện | Scale áp dụng |
 |---|---|
-| Element có class `.t` (text span) | Scale `font-size`, `line-height`, `height` ÷ 4 |
-| Element có class `._` (underscore span) | Scale `width` ÷ 4 |
-| Element `._` có class dạng `_123px` | Scale cả `margin` ÷ 4 |
+| Element có class `.t` (text span) | Giữ `font-size`, `line-height`, `height` theo computed style |
+| Element có class `._` (underscore span) | Giữ `width` theo computed style |
+| Element `._` có class dạng `_123px` | Giữ margin theo computed style |
 | Element `.pc` | Reset `transform: none`, xóa `max-width/height` |
-| Mọi element | `filter:none`, `opacity:1`, `visibility:visible` |
+| Mọi element | `filter:none`, `opacity:1`, `visibility:visible`, reset `letter-spacing` |
 
 #### `viewer.css`
 
-- `body > *:not(#clean-viewer-container):not(#sdc-overlay) { display:none }` — ẩn toàn bộ trang gốc
+- `body.sdc-viewer-active > *:not(#clean-viewer-container):not(#sdc-overlay) { display:none }` — chỉ ẩn trang gốc sau khi user xác nhận tạo PDF
 - `.std-page::before/after` — dải trắng cao 10px / 36px che watermark đầu/cuối mỗi trang
 - `@media print`:
   - `@page { margin: 0; size: auto }`
@@ -197,31 +222,77 @@ Nhấn icon extension
 
 | Quyền | Lý do sử dụng |
 |---|---|
-| `cookies` | `clearStudocuCookies()` trong popup.js |
-| `scripting` | Inject `viewer.css`, `viewer.js`, và `clearStudocuStorage` func |
+| `cookies` | `clearStudocuCookies()` trong `modules/chrome-api.js` |
+| `scripting` | Inject `viewer.css`, `viewer.js`, và func `clearStudocuStorage` |
 | `activeTab` | Lấy tabId của tab đang mở để thao tác |
+| `tabs` | `chrome.tabs.onUpdated` listener đợi tab reload xong |
 
 Extension **chỉ hoạt động** trên `studocu.com` và `studocu.vn`. Không gửi dữ liệu ra ngoài.
+
+## 🧪 Tooling & CI
+
+| Công cụ | Vai trò |
+|---|---|
+| ESLint v9 (flat config) | Lint `src/**/*.js`. Popup dùng `sourceType: 'module'`, content/viewer dùng `sourceType: 'script'` + chặn `import/export` qua `no-restricted-syntax`. |
+| `scripts/validate-manifest.mjs` | jq-style check JSON, version semver, permissions whitelist, host_permissions thuộc Studocu, file referenced tồn tại. |
+| `scripts/validate-i18n.mjs` | Bảo đảm `vi` ↔ `en` cùng tập key, cùng tập placeholder `{name}`, cho cả popup `i18n.js` và `viewer.js`. |
+| `scripts/validate-docs.mjs` | Quét backtick code reference trong README/DESIGN, fail nếu chỉ tới file không tồn tại. |
+| `web-ext lint` | Mozilla web-ext kiểm tra MV3 issues (manifest, permissions, deprecated API). |
+| `.github/workflows/ci.yml` | Chạy 5 job trên mỗi PR + push `develop`/`main`: lint, validate-manifest, validate-i18n, validate-docs, web-ext-lint. |
+| `.github/workflows/release.yml` | Trigger trên tag `v*` — verify version, merge develop→main, build ZIP, tạo GitHub Release. |
+
+Trước khi commit, chạy:
+
+```bash
+npm run check          # lint + validate
+npm run web-ext:lint   # MV3 sanity
+```
 
 ---
 
 ## 📁 Cấu trúc file
 
 ```
-StudocuTool/
-├── manifest.json            # Cấu hình extension (Manifest v3)
-├── DESIGN.md                # Tài liệu thiết kế (file này)
-├── README.md                # Hướng dẫn cài đặt & sử dụng
-├── icons/                   # Icon extension (16/32/48/128px)
+StudocuCleaner/
+├── manifest.json              # Cấu hình extension (Manifest v3)
+├── DESIGN.md                  # Tài liệu thiết kế (file này)
+├── README.md                  # Hướng dẫn cài đặt & sử dụng
+├── package.json               # devDependencies (eslint, web-ext) — không bundle vào release
+├── eslint.config.mjs          # Flat config ESLint v9
+├── .gitignore
+├── .clinerules/               # Hướng dẫn cho AI agent / Cline
+│   ├── 00-project-context.md
+│   ├── 10-bugfix-agent.md
+│   ├── 20-docs-agent.md
+│   ├── 30-review-checklist.md
+│   ├── 40-workflow.md
+│   └── README.md
+├── .github/workflows/
+│   ├── ci.yml                 # Lint + validate manifest/i18n/docs + web-ext lint
+│   └── release.yml            # Build ZIP + GitHub Release khi push tag v*
+├── docs/
+│   ├── troubleshooting.md
+│   ├── selectors-audit.md
+│   └── release.md
+├── scripts/
+│   ├── validate-manifest.mjs
+│   ├── validate-i18n.mjs
+│   └── validate-docs.mjs
+├── icons/                     # Icon extension (16/32/48/128px)
 └── src/
     ├── content/
-    │   ├── content.css      # CSS inject tại document_start — ẩn overlay sớm nhất
-    │   └── content.js       # JS inject tại document_idle — clean + MutationObserver
+    │   ├── content.css        # CSS inject tại document_start — ẩn overlay sớm nhất
+    │   └── content.js         # JS inject tại document_idle — clean + MutationObserver
     ├── popup/
-    │   ├── index.html       # Giao diện popup
-    │   ├── popup.css        # Dark theme, animation, status states
-    │   └── popup.js         # Logic: bypass cookie/storage & trigger PDF
+    │   ├── index.html         # Giao diện popup
+    │   ├── popup.css          # Dark theme, animation, status states
+    │   ├── popup.js           # View layer — wire DOM ↔ modules
+    │   └── modules/
+    │       ├── i18n.js        # Dictionary vi/en, t(), getLanguage, setLanguage
+    │       ├── status.js      # Status bar controller
+    │       ├── chrome-api.js  # Wrapper chrome.tabs/cookies/scripting
+    │       └── actions.js     # runBypass / runPdf
     └── viewer/
-        ├── viewer.css       # Print styles — ẩn trang gốc, layout trang in
-        └── viewer.js        # Build clean viewer container → window.print()
+        ├── viewer.css         # Print styles — ẩn trang gốc, layout trang in
+        └── viewer.js          # Build clean viewer container → waitForImagesToLoad → window.print()
 ```

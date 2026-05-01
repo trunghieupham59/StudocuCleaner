@@ -23,7 +23,7 @@
 | Feature | Description |
 |---|---|
 | 📄 **Export PDF** | Injects a viewer into the page that clones all document pages, auto-scales them to A4 size, and opens the browser print dialog to save a clean PDF |
-| 🧹 **Bypass blur & watermark** | Deletes all Studocu cookies and reloads the page — resets the view limit that causes documents to blur after reading too many pages |
+| 🧹 **Bypass blur & watermark** | Deletes Studocu cookies, clears local storage view-limit keys, and reloads the page |
 | 🛡️ **Auto content cleaning** | Content script runs on every Studocu page at load time: removes paywall overlays, strips blur filters, replaces blurred image URLs, and watches for React re-injection via MutationObserver |
 
 ---
@@ -65,7 +65,11 @@ Then load the `StudocuCleaner` folder using steps 4–6 above.
 
 1. When a document is blurred or prompts you to log in / upgrade
 2. Click the extension icon → **Bypass blur & watermark**
-3. The extension deletes all Studocu cookies and automatically reloads the page
+3. The extension deletes Studocu cookies, clears related local/session storage keys, and automatically reloads the page
+
+### Language
+
+Use the **VI / EN** toggle in the popup to switch the extension UI. The choice is saved locally and also applies to the PDF confirmation dialog.
 
 ---
 
@@ -77,12 +81,12 @@ StudocuCleaner/
 ├── icons/                     # Extension icons (16, 32, 48, 128 px)
 └── src/
     ├── popup/
-    │   ├── index.html         # Popup UI
-    │   ├── popup.css          # Popup styles (dark theme)
+    │   ├── index.html         # Popup UI with VI / EN language toggle
+    │   ├── popup.css          # Popup styles (compact dark utility UI)
     │   └── popup.js           # Popup logic — cookie clearing, PDF viewer launch
     ├── viewer/
     │   ├── viewer.css         # CSS injected when entering PDF mode (hides page UI, A4 print rules)
-    │   └── viewer.js          # (unused in current build — viewer logic lives in popup.js)
+    │   └── viewer.js          # PDF viewer logic injected by popup.js
     └── content/
         ├── content.css        # Auto-injected at document_start — hides overlays, removes blur via CSS
         └── content.js         # Auto-injected at document_idle — removes overlays, unblurs images,
@@ -96,7 +100,7 @@ StudocuCleaner/
 | Permission | Reason |
 |---|---|
 | `cookies` | Read and delete Studocu cookies to reset the view counter |
-| `scripting` | Inject `viewer.css` and the PDF viewer function into the active Studocu tab |
+| `scripting` | Inject `viewer.css`, `viewer.js`, and storage cleanup into the active Studocu tab |
 | `activeTab` | Access the currently open tab when the user clicks the extension |
 | `tabs` | Listen for tab reload completion after cookie clearing |
 
@@ -116,6 +120,29 @@ cd StudocuCleaner
 ```
 
 After editing any file, click the **↺ Reload** button on `chrome://extensions/` to apply changes.
+
+### Quality checks
+
+The extension itself ships with **zero runtime dependencies**. Tooling is dev-only:
+
+```bash
+npm install              # eslint, web-ext, globals (devDependencies)
+
+npm run lint             # ESLint over src/
+npm run validate         # manifest + i18n parity + docs references
+npm run web-ext:lint     # Mozilla web-ext MV3 sanity check
+npm run check            # lint + validate (run before every commit)
+```
+
+CI runs all of the above on every PR and push to `develop` / `main`
+(see `.github/workflows/ci.yml`).
+
+For agent / contributor guidance see `.clinerules/` and `docs/`:
+
+- `docs/troubleshooting.md` — common issues + how to diagnose them
+- `docs/selectors-audit.md` — Studocu DOM selector history
+- `docs/release.md` — full release procedure
+- `.clinerules/` — bug-fix and docs-update workflows for AI agents
 
 ### Release workflow
 
@@ -139,6 +166,20 @@ The workflow will:
 ---
 
 ## 📝 Changelog
+
+### v1.4.1
+- **Fix:** Bypass button could hang at "Reloading tab..." on cached pages — the
+  `chrome.tabs.onUpdated` listener is now armed **before** triggering the reload,
+  closing a race window where the `complete` event could fire before the listener attached.
+- **Fix:** Export PDF could occasionally produce blank pages on slow networks —
+  the viewer now waits for cloned background `<img>` elements to load (with a 1s safety
+  timeout) before calling `window.print()`.
+- **Fix:** Reusing the popup after cancelling a previous PDF run could stack two modals;
+  `showAlert`/`showConfirm` now drop any leftover `#sdc-overlay` before creating a new one.
+- **Tooling:** Added ESLint v9 flat config, manifest/i18n/docs validators, and a CI
+  workflow (`.github/workflows/ci.yml`) running lint + validate + web-ext lint on every PR.
+- **Docs:** Added `docs/troubleshooting.md`, `docs/selectors-audit.md`, `docs/release.md`,
+  and an `.clinerules/` directory describing bug-fix and docs-update workflows for AI agents.
 
 ### v1.4
 - Use `RELEASE_PAT` secret in release workflow to allow merging into protected `main` branch

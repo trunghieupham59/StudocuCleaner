@@ -11,14 +11,39 @@
   // ─── Config ─────────────────────────────────────────────────────────────────
 
   const CONFIG = {
-    scaleFactor:        4,
-    heightScaleDivisor: 4,
-    widthScaleDivisor:  4,
-    marginDivisor:      4,
+    scaleFactor:        1,
+    heightScaleDivisor: 1,
+    widthScaleDivisor:  1,
+    marginDivisor:      1,
     a4:                 { width: 595.3, height: 841.9 },
+    printWidth:         794,
     printDelay:         1000,
   };
 
+  const TRANSLATIONS = {
+    vi: {
+      noPagesTitle: 'Không tìm thấy trang nào',
+      noPagesMessage: 'Hãy cuộn xuống cuối tài liệu để tải hết nội dung, sau đó thử lại.',
+      pagesFoundTitle: 'Tìm thấy {count} trang',
+      pagesFoundMessage: 'Nhấn <strong>Tạo PDF</strong> để xử lý và mở hộp thoại in.',
+      cancel: 'Huỷ',
+      createPdf: 'Tạo PDF',
+      ok: 'OK',
+    },
+    en: {
+      noPagesTitle: 'No pages found',
+      noPagesMessage: 'Scroll to the end of the document so every page loads, then try again.',
+      pagesFoundTitle: 'Found {count} pages',
+      pagesFoundMessage: 'Click <strong>Create PDF</strong> to process the document and open the print dialog.',
+      cancel: 'Cancel',
+      createPdf: 'Create PDF',
+      ok: 'OK',
+    },
+  };
+
+  const viewerLanguage = normalizeLanguage(
+    window.__SDC_LANGUAGE__ || document.documentElement.getAttribute('data-sdc-language')
+  );
   const SKIP_VALUES = new Set(['none', 'auto', 'normal']);
 
   // Selectors for watermark/overlay nodes that should be stripped from cloned text layer
@@ -43,10 +68,24 @@
     'text-align', 'white-space',
     'display', 'visibility', 'opacity', 'z-index',
     'text-shadow', 'unicode-bidi', 'font-feature-settings', 'padding',
+    'transform', 'vertical-align',
   ];
 
   const SCALE_PROPS  = ['font-size', 'line-height'];
   const MARGIN_PROPS = ['margin-top', 'margin-right', 'margin-bottom', 'margin-left'];
+
+  function normalizeLanguage(language) {
+    return language === 'en' || language === 'vi' ? language : 'vi';
+  }
+
+  function t(key, values = {}) {
+    const dict = TRANSLATIONS[viewerLanguage] || TRANSLATIONS.vi;
+    const template = dict[key] || TRANSLATIONS.vi[key] || key;
+
+    return template.replace(/\{(\w+)\}/g, (_, name) => {
+      return values[name] == null ? '' : String(values[name]);
+    });
+  }
 
   // ─── Modal styles ────────────────────────────────────────────────────────────
 
@@ -67,11 +106,12 @@
 
     #sdc-modal {
       background: #fff;
-      border-radius: 16px;
-      padding: 28px 28px 22px;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      padding: 24px;
       max-width: 380px;
       width: calc(100% - 48px);
-      box-shadow: 0 20px 60px rgb(0 0 0 / 25%);
+      box-shadow: 0 18px 50px rgb(15 23 42 / 24%);
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       animation: sdcSlideUp 0.18s cubic-bezier(0.34, 1.56, 0.64, 1);
     }
@@ -86,10 +126,11 @@
       justify-content: center;
       width: 44px;
       height: 44px;
-      border-radius: 12px;
-      background: linear-gradient(135deg, #f97316, #e8380d);
+      border: 1px solid rgb(249 115 22 / 24%);
+      border-radius: 8px;
+      background: rgb(249 115 22 / 12%);
       margin-bottom: 16px;
-      color: #fff;
+      color: #f97316;
     }
     #sdc-modal h3 {
       margin: 0 0 8px;
@@ -111,8 +152,8 @@
     }
     #sdc-modal button {
       padding: 9px 20px;
-      border-radius: 8px;
-      border: none;
+      border-radius: 6px;
+      border: 1px solid transparent;
       font-size: 13px;
       font-weight: 600;
       cursor: pointer;
@@ -120,13 +161,15 @@
     }
     #sdc-modal .sdc-btn-cancel {
       background: #f1f5f9;
+      border-color: #e2e8f0;
       color: #475569;
     }
     #sdc-modal .sdc-btn-cancel:hover { background: #e2e8f0; }
     #sdc-modal .sdc-btn-ok {
-      background: linear-gradient(135deg, #f97316, #e8380d);
+      background: #f97316;
+      border-color: #ea580c;
       color: #fff;
-      box-shadow: 0 4px 12px rgb(232 56 13 / 30%);
+      box-shadow: 0 4px 12px rgb(249 115 22 / 24%);
     }
     #sdc-modal .sdc-btn-ok:hover { filter: brightness(1.08); }
   `;
@@ -144,6 +187,9 @@
   /** Show a simple alert modal. @returns {Promise<void>} */
   function showAlert(title, message) {
     injectModalStyles();
+    // fix: drop any leftover overlay (e.g. from a previous cancelled run) so
+    // we don't end up with two modals stacked when the popup is reused.
+    document.getElementById('sdc-overlay')?.remove();
     return new Promise(resolve => {
       const overlay = document.createElement('div');
       overlay.id = 'sdc-overlay';
@@ -157,7 +203,7 @@
           <h3>${title}</h3>
           <p>${message}</p>
           <div class="sdc-actions">
-            <button class="sdc-btn-ok">OK</button>
+            <button class="sdc-btn-ok">${t('ok')}</button>
           </div>
         </div>`;
       document.body.appendChild(overlay);
@@ -171,6 +217,8 @@
   /** Show a confirm modal. @returns {Promise<boolean>} */
   function showConfirm(title, message) {
     injectModalStyles();
+    // fix: drop any stale overlay before showing a new one
+    document.getElementById('sdc-overlay')?.remove();
     return new Promise(resolve => {
       const overlay = document.createElement('div');
       overlay.id = 'sdc-overlay';
@@ -185,8 +233,8 @@
           <h3>${title}</h3>
           <p>${message}</p>
           <div class="sdc-actions">
-            <button class="sdc-btn-cancel">Huỷ</button>
-            <button class="sdc-btn-ok">Tạo PDF</button>
+            <button class="sdc-btn-cancel">${t('cancel')}</button>
+            <button class="sdc-btn-ok">${t('createPdf')}</button>
           </div>
         </div>`;
       document.body.appendChild(overlay);
@@ -259,6 +307,8 @@
         style += `${prop}:${scaleFont ? scaleValue(val, CONFIG.scaleFactor) : val}!important;`;
       }
     }
+
+    style += 'letter-spacing:0!important;word-spacing:normal!important;';
 
     // Transform-origin
     const origin = cs.getPropertyValue('transform-origin');
@@ -386,41 +436,92 @@
 
     if (pages.length === 0) {
       await showAlert(
-        'Không tìm thấy trang nào',
-        'Hãy cuộn xuống cuối tài liệu để tải hết nội dung, sau đó thử lại.'
+        t('noPagesTitle'),
+        t('noPagesMessage')
       );
       return;
     }
 
     const confirmed = await showConfirm(
-      `Tìm thấy ${pages.length} trang`,
-      `Nhấn <strong>Tạo PDF</strong> để xử lý và mở hộp thoại in.`
+      t('pagesFoundTitle', { count: pages.length }),
+      t('pagesFoundMessage')
     );
     if (!confirmed) return;
+
+    document.body.classList.add('sdc-viewer-active');
 
     const container = document.createElement('div');
     container.id = 'clean-viewer-container';
 
     pages.forEach((page, index) => {
       const { width, height } = getPageDimensions(page);
+      const printScale = CONFIG.printWidth / width;
+      const printHeight = Math.round(height * printScale);
 
       const pageEl              = document.createElement('div');
       pageEl.className          = 'std-page';
       pageEl.id                 = `page-${index + 1}`;
       pageEl.dataset.pageNumber = String(index + 1);
-      pageEl.style.width        = `${width}px`;
-      pageEl.style.height       = `${height}px`;
+      pageEl.style.width        = `${CONFIG.printWidth}px`;
+      pageEl.style.height       = `${printHeight}px`;
+      pageEl.style.overflow     = 'hidden';
+
+      const scaleWrap = document.createElement('div');
+      scaleWrap.style.cssText = [
+        'position:absolute',
+        'top:0',
+        'left:0',
+        `width:${width}px`,
+        `height:${height}px`,
+        `transform:scale(${printScale})`,
+        'transform-origin:top left',
+      ].join(';');
 
       const imgLayer = buildImageLayer(page);
-      if (imgLayer) pageEl.appendChild(imgLayer);
+      if (imgLayer) scaleWrap.appendChild(imgLayer);
 
       const textLayer = buildTextLayer(page);
-      if (textLayer) pageEl.appendChild(textLayer);
+      if (textLayer) scaleWrap.appendChild(textLayer);
 
+      pageEl.appendChild(scaleWrap);
       container.appendChild(pageEl);
     });
 
     document.body.appendChild(container);
-    setTimeout(() => window.print(), CONFIG.printDelay);
+
+    // fix: wait for cloned background images to load before printing —
+    // otherwise the print dialog can race the network and produce blank pages.
+    await waitForImagesToLoad(container, CONFIG.printDelay);
+    window.print();
   })();
+
+  /**
+   * Wait until every <img> inside `root` has resolved (loaded or errored),
+   * but no longer than `timeoutMs`. Always resolves — never rejects.
+   */
+  function waitForImagesToLoad(root, timeoutMs) {
+    const imgs = Array.from(root.querySelectorAll('img'));
+    const pending = imgs.filter(img => !img.complete);
+    if (pending.length === 0) {
+      return new Promise(resolve => setTimeout(resolve, timeoutMs));
+    }
+    return new Promise(resolve => {
+      let done = false;
+      const finish = () => {
+        if (done) return;
+        done = true;
+        resolve();
+      };
+      let remaining = pending.length;
+      const tick = () => {
+        remaining--;
+        if (remaining <= 0) finish();
+      };
+      for (const img of pending) {
+        img.addEventListener('load',  tick, { once: true });
+        img.addEventListener('error', tick, { once: true });
+      }
+      setTimeout(finish, timeoutMs);
+    });
+  }
 }());
