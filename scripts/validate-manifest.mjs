@@ -8,6 +8,7 @@
  *   - permissions are whitelisted
  *   - host_permissions match Studocu domains only
  *   - content_scripts[].matches subset of host_permissions
+ *   - Firefox MV3 metadata is present for web-ext lint/signing
  *   - all referenced files exist on disk
  */
 
@@ -97,6 +98,16 @@ for (const war of manifest.web_accessible_resources || []) {
       fail(`web_accessible_resources match "${match}" is outside Studocu domains`);
     }
   }
+}
+
+const geckoSettings = manifest.browser_specific_settings?.gecko;
+if (!geckoSettings?.id) {
+  fail('browser_specific_settings.gecko.id is required for Firefox MV3 signing/linting');
+}
+
+const requiredDataPermissions = geckoSettings?.data_collection_permissions?.required;
+if (!Array.isArray(requiredDataPermissions) || requiredDataPermissions.length !== 1 || requiredDataPermissions[0] !== 'none') {
+  fail('browser_specific_settings.gecko.data_collection_permissions.required must be ["none"]');
 }
 
 if (errors.length) {
