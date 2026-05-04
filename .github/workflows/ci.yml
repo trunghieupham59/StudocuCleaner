@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - develop
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    name: ESLint (src/)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install deps
+        run: npm ci || npm install
+      - name: Run ESLint
+        run: npm run lint
+
+  validate-manifest:
+    name: Validate manifest.json
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: jq parse
+        run: jq . manifest.json > /dev/null
+      - name: Run validator
+        run: node scripts/validate-manifest.mjs
+
+  validate-i18n:
+    name: Validate i18n parity (vi ↔ en)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node scripts/validate-i18n.mjs
+
+  validate-docs:
+    name: Validate docs references
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - run: node scripts/validate-docs.mjs
+
+  web-ext-lint:
+    name: web-ext lint (MV3)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - name: Install deps
+        run: npm ci || npm install
+      - name: web-ext lint
+        run: npm run web-ext:lint

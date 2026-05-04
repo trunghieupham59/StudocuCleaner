@@ -21,9 +21,9 @@
 ## ✨ Features
 
 | Feature | Description |
-|---|---|
+| --- | --- |
 | 📄 **Export PDF** | Injects a viewer into the page that clones all document pages, auto-scales them to A4 size, and opens the browser print dialog to save a clean PDF |
-| 🧹 **Bypass blur & watermark** | Deletes all Studocu cookies and reloads the page — resets the view limit that causes documents to blur after reading too many pages |
+| 🧹 **Bypass blur & watermark** | Deletes Studocu cookies and reloads the page |
 | 🛡️ **Auto content cleaning** | Content script runs on every Studocu page at load time: removes paywall overlays, strips blur filters, replaces blurred image URLs, and watches for React re-injection via MutationObserver |
 
 ---
@@ -65,24 +65,28 @@ Then load the `StudocuCleaner` folder using steps 4–6 above.
 
 1. When a document is blurred or prompts you to log in / upgrade
 2. Click the extension icon → **Bypass blur & watermark**
-3. The extension deletes all Studocu cookies and automatically reloads the page
+3. The extension deletes Studocu cookies and automatically reloads the page
+
+### Language
+
+Use the **VI / EN** toggle in the popup to switch the extension UI. The choice is saved locally and also applies to the PDF confirmation dialog.
 
 ---
 
 ## 📁 Project Structure
 
-```
+```text
 StudocuCleaner/
 ├── manifest.json              # Extension config (Manifest v3)
 ├── icons/                     # Extension icons (16, 32, 48, 128 px)
 └── src/
     ├── popup/
-    │   ├── index.html         # Popup UI
-    │   ├── popup.css          # Popup styles (dark theme)
+    │   ├── index.html         # Popup UI with VI / EN language toggle
+    │   ├── popup.css          # Popup styles (compact dark utility UI)
     │   └── popup.js           # Popup logic — cookie clearing, PDF viewer launch
     ├── viewer/
     │   ├── viewer.css         # CSS injected when entering PDF mode (hides page UI, A4 print rules)
-    │   └── viewer.js          # (unused in current build — viewer logic lives in popup.js)
+    │   └── viewer.js          # PDF viewer logic injected by popup.js
     └── content/
         ├── content.css        # Auto-injected at document_start — hides overlays, removes blur via CSS
         └── content.js         # Auto-injected at document_idle — removes overlays, unblurs images,
@@ -94,11 +98,11 @@ StudocuCleaner/
 ## 🔒 Permissions
 
 | Permission | Reason |
-|---|---|
+| --- | --- |
 | `cookies` | Read and delete Studocu cookies to reset the view counter |
-| `scripting` | Inject `viewer.css` and the PDF viewer function into the active Studocu tab |
+| `scripting` | Inject `viewer.css` and `viewer.js` into the active Studocu tab |
 | `activeTab` | Access the currently open tab when the user clicks the extension |
-| `tabs` | Listen for tab reload completion after cookie clearing |
+| `tabs` | Query and reload the active tab after cookie clearing |
 
 The extension **only activates** on `studocu.com` and `studocu.vn`. No data is collected or transmitted.
 
@@ -117,6 +121,29 @@ cd StudocuCleaner
 
 After editing any file, click the **↺ Reload** button on `chrome://extensions/` to apply changes.
 
+### Quality checks
+
+The extension itself ships with **zero runtime dependencies**. Tooling is dev-only:
+
+```bash
+npm install              # eslint, web-ext, globals (devDependencies)
+
+npm run lint             # ESLint over src/
+npm run validate         # manifest + i18n parity + docs references
+npm run web-ext:lint     # Mozilla web-ext MV3 sanity check
+npm run check            # lint + validate (run before every commit)
+```
+
+CI runs all of the above on every PR and push to `develop` / `main`
+(see `.github/workflows/ci.yml`).
+
+For agent / contributor guidance see `.clinerules/` and `docs/`:
+
+- `docs/troubleshooting.md` — common issues + how to diagnose them
+- `docs/selectors-audit.md` — Studocu DOM selector history
+- `docs/release.md` — full release procedure
+- `.clinerules/` — bug-fix and docs-update workflows for AI agents
+
 ### Release workflow
 
 Releases are automated via GitHub Actions (`.github/workflows/release.yml`):
@@ -131,6 +158,7 @@ git tag v1.5 && git push origin v1.5
 ```
 
 The workflow will:
+
 - Verify that `manifest.json` version matches the tag
 - Merge `develop` → `main`
 - Build a ZIP containing `manifest.json`, `icons/`, and `src/`
@@ -140,7 +168,25 @@ The workflow will:
 
 ## 📝 Changelog
 
+### Unreleased
+
+- **Fix:** Restore Export PDF rendering to the `develop` path: native confirmation,
+  cloned image + text layers, A4 scale wrapper, and delayed `window.print()`.
+
+### v1.4.1
+
+- **Fix:** Bypass button could hang at "Reloading tab..." on cached pages — the
+  `chrome.tabs.onUpdated` listener is now armed **before** triggering the reload,
+  closing a race window where the `complete` event could fire before the listener attached.
+- **Fix:** Export PDF rendering was refactored into `src/viewer/viewer.js` while preserving
+  the same image + text-layer output path used by the working popup flow.
+- **Tooling:** Added ESLint v9 flat config, manifest/i18n/docs validators, and a CI
+  workflow (`.github/workflows/ci.yml`) running lint + validate + web-ext lint on every PR.
+- **Docs:** Added `docs/troubleshooting.md`, `docs/selectors-audit.md`, `docs/release.md`,
+  and an `.clinerules/` directory describing bug-fix and docs-update workflows for AI agents.
+
 ### v1.4
+
 - Use `RELEASE_PAT` secret in release workflow to allow merging into protected `main` branch
 - Auto-scale document pages to A4 width when building the PDF viewer (via CSS transform + `scaleWrap`)
 - Print CSS updated to `@page { size: A4 portrait }` for consistent output
@@ -148,16 +194,19 @@ The workflow will:
 - Fix `viewer.css`: only reset `transform: none` on `.pc`, not on child subscript/superscript spans
 
 ### v1.3
+
 - Fix PDF viewer rendering: `SCALE_FACTOR` changed from `4` to `1` — text sizes are now preserved at their computed display values instead of being divided by 4 before browser print scaling
 - Add `transform` and `vertical-align` to copied CSS props for correct subscript/superscript positioning
 
 ### v1.2
+
 - Add `"tabs"` permission to manifest — required for `chrome.tabs.onUpdated` listener
 - Fix **Bypass** button: `clearStudocuStorage()` failure (on non-Studocu tabs) no longer blocks cookie clearing and page reload
 - Port exact bypass logic from v1.0 sample: sequential cookie loop, `setTimeout(1000)` reload
 - Port exact PDF viewer logic from v1.0 sample: `func: runCleanViewer` injection, `alert/confirm` dialogs
 
 ### v1.1
+
 - Renamed extension to **Studocu Tools**
 - Restructured project — source moved to `src/` (popup, viewer, content)
 - New popup UI: redesigned with status bar and real-time feedback
@@ -166,6 +215,7 @@ The workflow will:
 - Added `content.js`: MutationObserver-based dynamic overlay removal, blurred image URL replacement, React re-injection defense
 
 ### v1.0
+
 - Initial release
 
 ---

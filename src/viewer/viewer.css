@@ -122,8 +122,12 @@ body > *:not(#clean-viewer-container):not(#sdc-overlay) {
 
   .std-page {
     width: 210mm !important;
+    height: 297mm !important;
+    max-height: 297mm !important;
     margin: 0 !important;
     box-shadow: none !important;
+    page-break-inside: avoid !important;
+    break-inside: avoid-page !important;
     page-break-after: always !important;
     break-after: always !important;
     border: none !important;

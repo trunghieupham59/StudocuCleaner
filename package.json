@@ -1,0 +1,24 @@
+{
+  "name": "studocu-cleaner",
+  "version": "1.4.1",
+  "private": true,
+  "description": "Chrome MV3 extension — bypass watermark, remove blur, export PDF from Studocu documents.",
+  "scripts": {
+    "lint": "eslint \"src/**/*.js\"",
+    "lint:fix": "eslint \"src/**/*.js\" --fix",
+    "validate:manifest": "node scripts/validate-manifest.mjs",
+    "validate:i18n": "node scripts/validate-i18n.mjs",
+    "validate:docs": "node scripts/validate-docs.mjs",
+    "validate": "npm run validate:manifest && npm run validate:i18n && npm run validate:docs",
+    "web-ext:lint": "web-ext lint --source-dir=. --self-hosted --ignore-files='node_modules/**' '.github/**' 'docs/**' '.clinerules/**' 'scripts/**' '*.md' 'package*.json' '.eslintrc.*' '.gitignore' 'eslint.config.*'",
+    "check": "npm run lint && npm run validate"
+  },
+  "devDependencies": {
+    "eslint": "^9.13.0",
+    "globals": "^15.11.0",
+    "web-ext": "^8.3.0"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}
